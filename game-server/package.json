@@ -4,7 +4,8 @@
     "private":false,
     "dependencies":{
         "pomelo":"1.0.0",
-        "crc": "0.2.0"
+        "crc": "0.2.0",
+        "request":"2.36"
     }
 }
 

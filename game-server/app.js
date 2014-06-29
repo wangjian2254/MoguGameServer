@@ -3,19 +3,25 @@ var routeUtil = require('./app/util/routeUtil');
 /**
  * Init app for client.
  */
+
 var app = pomelo.createApp();
-app.set('name', 'chatofpomelo-websocket');
+app.set('name', 'mogu-gameserver');
+app.set('alluser',{});
+app.set('gameroom',{});
 
 // app configuration
 //app.configure('production|development', 'connector', function(){
 //    app.set('connectorConfig',
 //        {
-//            connector : pomelo.connectors.sioconnector,
+//            connector : pomelo.connectors.hybridconnector,
 //            heartbeat : 3,
 //            useDict : true,
 //            useProtobuf : true
 //        });
 //});
+
+var syncRommInfo = require('./app/components/syncRoomInfo');
+
 app.configure('production|development', 'connector', function(){
     app.set('connectorConfig',
         {
@@ -27,11 +33,12 @@ app.configure('production|development', 'connector', function(){
             heartbeatTimeout : 60,
             heartbeatInterval : 25
         });
+    app.load(syncRommInfo,{interval:1000*60*10});
 });
 //app.configure('production|development', 'gate', function(){
 //    app.set('connectorConfig',
 //        {
-//            connector : pomelo.connectors.sioconnector,
+//            connector : pomelo.connectors.hybridconnector,
 //            useProtobuf : true
 //        });
 //});

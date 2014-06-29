@@ -16,17 +16,21 @@ var ChatRemote = function(app) {
  * @param {boolean} flag channel parameter
  *
  */
-ChatRemote.prototype.add = function(uid, sid, name, flag, cb) {
+ChatRemote.prototype.add = function(username,appcode, sid, name, flag, cb) {
 	var channel = this.channelService.getChannel(name, flag);
-	var username = uid.split('*')[0];
 	var param = {
 		route: 'onAdd',
-		user: username
+		user: username,
+        roomid:name,
+        userinfo: this.app.get('alluser')[appcode][username]
 	};
 	channel.pushMessage(param);
 
+    var roomlistchannel = this.channelService.getChannel(appcode,flag);
+    roomlistchannel.pushMessage(param);
+
 	if( !! channel) {
-		channel.add(uid, sid);
+		channel.add(username, sid);
 	}
 
 	cb(this.get(name, flag));
@@ -48,7 +52,7 @@ ChatRemote.prototype.get = function(name, flag) {
 		users = channel.getMembers();
 	}
 	for(var i = 0; i < users.length; i++) {
-		users[i] = users[i].split('*')[0];
+		users[i] = this.app.get('alluser')[appcode][users[i]];
 	}
 	return users;
 };
@@ -61,17 +65,19 @@ ChatRemote.prototype.get = function(name, flag) {
  * @param {String} name channel name
  *
  */
-ChatRemote.prototype.kick = function(uid, sid, name, cb) {
+ChatRemote.prototype.kick = function(username,appcode, sid, name, cb) {
 	var channel = this.channelService.getChannel(name, false);
 	// leave channel
 	if( !! channel) {
-		channel.leave(uid, sid);
+		channel.leave(username, sid);
 	}
-	var username = uid.split('*')[0];
 	var param = {
 		route: 'onLeave',
+        roomid:name,
 		user: username
 	};
 	channel.pushMessage(param);
+    var roomlistchannel = this.channelService.getChannel(appcode,flag);
+    roomlistchannel.pushMessage(param);
 	cb();
 };
