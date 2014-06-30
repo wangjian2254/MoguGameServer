@@ -25,13 +25,18 @@ handler.addRoomList = function(msg, session, next) {
     var appcode = msg.appcode;//appcode
     var username = msg.username;
     var sessionService = self.app.get('sessionService');
-    //duplicate log in
-    if( !! sessionService.getByUid(username)) {
-        next(null, {
-            code: 500,
-            error: true
+    console.log(sessionService.getByUid(username));
+    //第一次登陆
+    if( ! sessionService.getByUid(username)) {
+        session.bind(username);
+        session.set('username', username);
+        session.set('room', appcode);
+        session.pushAll(function(err) {
+            if(err) {
+                console.error('set room for session service failed! error is : %j', err.stack);
+            }
         });
-        return;
+        session.on('closed', onUserLeave.bind(null, self.app));
     }
     var roominfo = self.app.roominfo[msg.appcode];
     if(!roominfo){
@@ -42,20 +47,20 @@ handler.addRoomList = function(msg, session, next) {
         });
         return;
     }
-    console.log(msg);
+    if(!self.app.get('alluser')[appcode]){
+        self.app.get('alluser')[appcode]={};
+    }
+//    var userinfo = {};
+//    userinfo['username']=msg.username;
+//    userinfo['nickname']=msg.nickname;
+//    userinfo['head']=msg.head;
+//    userinfo['rank']=msg.rank;
+//    userinfo['point']=msg.point;
+//    self.app.get('alluser')[appcode][username]=userinfo;
 
-    session.bind(username);
-    session.set('username', username);
-    session.set('room', appcode);
-    session.pushAll(function(err) {
-        if(err) {
-            console.error('set room for session service failed! error is : %j', err.stack);
-        }
-    });
-    session.on('closed', onUserLeave.bind(null, self.app));
 
     //put user into channel
-    self.app.rpc.chat.roommemberRemote.add(session, username,appcode,msg.userinfo, self.app.get('serverId'), appcode, true, function(){
+    self.app.rpc.chat.roommemberRemote.add(session, appcode,username,msg.userinfo, self.app.get('serverId'), true, function(){
 
         next(null, {
             code:200,
@@ -155,12 +160,12 @@ var onUserLeave = function(app, session) {
     if(!session || !session.uid) {
         return;
     }
-    app.rpc.chat.roommemberRemote.kick(session, session.uid,session.get('room'), app.get('serverId'), session.get('room'), null);
+    app.rpc.chat.roommemberRemote.kick(session,  session.get('room'),session.uid, app.get('serverId'), null);
 };
 
 
 handler.quiteRoomList = function(msg,session,next){
-    this.app.rpc.chat.roommemberRemote.kick(session, session.uid,session.get('room'), this.app.get('serverId'), session.get('room'), null);
+    this.app.rpc.chat.roommemberRemote.kick(session, session.get('room'),session.uid, this.app.get('serverId'), null);
     next(null,{
         code:200
     });

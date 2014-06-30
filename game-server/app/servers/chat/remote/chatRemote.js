@@ -16,24 +16,27 @@ var ChatRemote = function(app) {
  * @param {boolean} flag channel parameter
  *
  */
-ChatRemote.prototype.add = function(username,appcode, sid, name, flag, cb) {
-	var channel = this.channelService.getChannel(name, flag);
+ChatRemote.prototype.add = function(roomid,username,appcode, sid, flag, cb) {
+	var channel = this.channelService.getChannel(roomid, flag);
 	var param = {
 		route: 'onAdd',
 		user: username,
-        roomid:name,
+        roomid:roomid,
         userinfo: this.app.get('alluser')[appcode][username]
 	};
 	channel.pushMessage(param);
 
-    var roomlistchannel = this.channelService.getChannel(appcode,flag);
-    roomlistchannel.pushMessage(param);
+//    var roomlistchannel = this.channelService.getChannel(appcode,flag);
+//    roomlistchannel.pushMessage(param);
 
 	if( !! channel) {
 		channel.add(username, sid);
 	}
 
-	cb(this.get(name, flag));
+    //put user into channel
+    this.app.rpc.chat.roommemberRemote.changeRoomInfo(session, appcode,'in',roomid,username,param.userinfo, self.app.get('serverId'), true);
+	cb(this.get(roomid, flag));
+
 };
 
 /**
@@ -65,19 +68,19 @@ ChatRemote.prototype.get = function(name, flag) {
  * @param {String} name channel name
  *
  */
-ChatRemote.prototype.kick = function(username,appcode, sid, name, cb) {
-	var channel = this.channelService.getChannel(name, false);
+ChatRemote.prototype.kick = function(roomid,username,appcode, sid, cb) {
+	var channel = this.channelService.getChannel(roomid, false);
 	// leave channel
 	if( !! channel) {
 		channel.leave(username, sid);
 	}
 	var param = {
 		route: 'onLeave',
-        roomid:name,
+        roomid:roomid,
 		user: username
 	};
 	channel.pushMessage(param);
-    var roomlistchannel = this.channelService.getChannel(appcode,flag);
-    roomlistchannel.pushMessage(param);
-	cb();
+    this.app.rpc.chat.roommemberRemote.changeRoomInfo(session, appcode, 'out',roomid,username,param.userinfo, self.app.get('serverId'), true);
+
+    cb();
 };

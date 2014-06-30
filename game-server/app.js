@@ -6,8 +6,9 @@ var routeUtil = require('./app/util/routeUtil');
 
 var app = pomelo.createApp();
 app.set('name', 'mogu-gameserver');
+//todo: 用户信息 和 房间列表信息 需要使用 memcache 框架来完成，保证内存中数据一致性。（也可以使用数据库，前期可以使用数据库，后期改为memcache）
 app.set('alluser',{},true);
-app.set('roominfo',{},true);
+//app.set('roominfo',{},true);
 app.set('gameroom',{},true);
 
 // app configuration
@@ -34,7 +35,7 @@ app.configure('production|development', 'connector', function(){
             heartbeatTimeout : 60,
             heartbeatInterval : 25
         });
-    app.load(syncRommInfo,{interval:1000*60*10});
+    app.load(syncRommInfo,{interval:1000*60*0.1});
 });
 //app.configure('production|development', 'gate', function(){
 //    app.set('connectorConfig',
