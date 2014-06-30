@@ -12,6 +12,12 @@ var Handler = function(app) {
 
 var handler = Handler.prototype;
 
+handler.checkOnLine = function(msg,session,next){
+    next(null, {
+        code: 200
+    });
+    return;
+}
 
 
 handler.addRoomList = function(msg, session, next) {
@@ -41,7 +47,7 @@ handler.addRoomList = function(msg, session, next) {
     session.bind(username);
     session.set('username', username);
     session.set('room', appcode);
-    session.push('room', function(err) {
+    session.pushAll(function(err) {
         if(err) {
             console.error('set room for session service failed! error is : %j', err.stack);
         }

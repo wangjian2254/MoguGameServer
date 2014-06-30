@@ -26,17 +26,17 @@ SyncRoomInfo.prototype.start = function(cb){
 
         if(!s){
             roominfofile.downloadRoomJsonInfo(function(data,stat){
-                self.app['roominfo']=data;
-                self.app['roominfo']['timeline']= stat.mtime;
+                self.app.roominfo=data;
+                self.app.roominfo['timeline']= stat.mtime;
                 console.log('roominfo inited');
                 console.log(stat.mtime);
             });
             console.log('download info');
         }else{
             console.log(s.mtime);
-            if(!self.app['roominfo']||self.app['roominfo'].timeline< s.mtime){
-                self.app['roominfo'] = roominfofile.getRoomJsonData();
-                self.app['roominfo']['timeline']= s.mtime;
+            if(!self.app.roominfo||self.app.roominfo.timeline< s.mtime){
+                self.app.roominfo = roominfofile.getRoomJsonData();
+                self.app.roominfo['timeline']= s.mtime;
                 console.log('roominfo changed');
             }
         }

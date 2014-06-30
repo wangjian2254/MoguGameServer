@@ -6,8 +6,9 @@ var routeUtil = require('./app/util/routeUtil');
 
 var app = pomelo.createApp();
 app.set('name', 'mogu-gameserver');
-app.set('alluser',{});
-app.set('gameroom',{});
+app.set('alluser',{},true);
+app.set('roominfo',{},true);
+app.set('gameroom',{},true);
 
 // app configuration
 //app.configure('production|development', 'connector', function(){

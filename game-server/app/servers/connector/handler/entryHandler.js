@@ -35,7 +35,7 @@ handler.enter = function(msg, session, next) {
 	session.bind(username);
     session.set('username', username);
 	session.set('roomid', roomid);
-	session.push('roomid', function(err) {
+	session.pushAll( function(err) {
 		if(err) {
 			console.error('set roomid for session service failed! error is : %j', err.stack);
 		}
