@@ -123,15 +123,7 @@ handler.queryRoomList = function(msg,session,next){
     var self = this;
     var appcode = msg.appcode;//appcode
     var sessionService = self.app.get('sessionService');
-    //duplicate log in
-    if( !! sessionService.getByUid(username)) {
-        next(null, {
-            route:'queryRoomList',
-            code: 500,
-            error: true
-        });
-        return;
-    }
+
     var roominfo = self.app.roominfo[appcode];
     if(!roominfo){
         next(null,{
@@ -184,6 +176,7 @@ handler.getMembersByRoom = function(msg,session,next){
             code:200,
             route:'getMembersByRoom',
             romm:{
+                roomid:msg.roomid,
                 users:users,
                 appcode:msg.appcode
             }
