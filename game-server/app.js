@@ -35,7 +35,7 @@ app.configure('production|development', 'connector', function(){
             heartbeatTimeout : 60,
             heartbeatInterval : 25
         });
-    app.load(syncRommInfo,{interval:1000*60*0.1});
+    app.load(syncRommInfo,{interval:1000*60*10});
 });
 //app.configure('production|development', 'gate', function(){
 //    app.set('connectorConfig',

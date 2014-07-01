@@ -42,7 +42,7 @@ SyncRoomInfo.prototype.start = function(cb){
                 console.log('roominfo changed');
             }
         }
-        console.log(self.app.get('alluser'));
+//        console.log(self.app.get('alluser'));
 
     };
     console.log('start');

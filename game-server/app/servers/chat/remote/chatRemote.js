@@ -60,6 +60,10 @@ ChatRemote.prototype.get = function(name, flag) {
 	return users;
 };
 
+ChatRemote.prototype.getRoomMembers = function(roomid,flag,cb){
+    cb(this.get(roomid,flag));
+}
+
 /**
  * Kick user out chat channel.
  *
@@ -82,5 +86,21 @@ ChatRemote.prototype.kick = function(roomid,username,appcode, sid, cb) {
 	channel.pushMessage(param);
     this.app.rpc.chat.roommemberRemote.changeRoomInfo(session, appcode, 'out',roomid,username,param.userinfo, self.app.get('serverId'), true);
 
+    cb();
+};
+
+
+ChatRemote.prototype.uploadEndPoint = function(roomid,username,appcode,content, cb) {
+    if(!this.app.get('gameroom')[roomid]){
+        this.app.get('gameroom')[roomid]={};
+    }
+    this.app.get('gameroom')[roomid][username]=content;
+    cb();
+};
+
+
+
+ChatRemote.prototype.cleanPoint = function(roomid,username,appcode, cb) {
+    this.app.get('gameroom')[roomid]={};
     cb();
 };

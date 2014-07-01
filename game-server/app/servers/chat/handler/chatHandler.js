@@ -43,7 +43,8 @@ handler.send = function(msg, session, next) {
 		}]);
 	}
 	next(null, {
-		route: msg.route
+        code:200,
+        route:'send'
 	});
 };
 
@@ -57,17 +58,33 @@ handler.send = function(msg, session, next) {
  *
  */
 handler.uploadPoint = function(msg, session, next) {
-    var roomid = session.get('roomid');
-    var username = session.uid;
-    if(!this.app.get('gameroom')[roomid]){
-        this.app.get('gameroom')[roomid]={};
-    }
-    this.app.get('gameroom')[roomid][username]=msg.content;
+    var roomid = msg.roomid;
+    var channelService = this.app.get('channelService');
+    var param = {
+        msg: msg.content,
+        from: msg.username
+    };
+    channel = channelService.getChannel(roomid, false);
+
+    channel.pushMessage('onChat', param);
+
     next(null, {
-        route: msg.route
+        code:200,
+        route:'uploadPoint'
     });
 };
 
+handler.uploadEndPoint = function(msg, session, next) {
+    var roomid = session.get('roomid');
+    this.app.rpc.chat.chatRemote.uploadEndPoint(session,msg.roomid,msg.username,msg.appcode,msg.content,function(){
+        next(null, {
+            code:200,
+            route:'uploadEndPoint'
+        });
+        return;
+    })
+
+};
 
 /**
  * clean result point
@@ -77,11 +94,15 @@ handler.uploadPoint = function(msg, session, next) {
  * @param  {Function} next next stemp callback
  *
  */
+
 handler.cleanPoint = function(msg, session, next) {
     var roomid = session.get('roomid');
-    var username = session.uid;
-    this.app.get('gameroom')[roomid]={};
-    next(null, {
-        route: msg.route
-    });
+    this.app.rpc.chat.chatRemote.cleanPoint(session,msg.roomid,msg.username,msg.appcode,function(){
+        next(null, {
+            code:200,
+            route:'cleanPoint'
+        });
+        return;
+    })
+
 };
