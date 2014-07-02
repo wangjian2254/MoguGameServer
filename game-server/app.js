@@ -22,8 +22,11 @@ app.set('gameroom',{},true);
 //});
 
 var syncRommInfo = require('./app/components/syncRoomInfo');
+app.loadConfig('mysql', app.getBase() + '/../shared/config/mysql.json');
 
 app.configure('production|development', 'connector', function(){
+    var dbclient = require('./app/dao/mysql/mysql').init(app);
+    app.set('dbclient', dbclient);
     app.set('connectorConfig',
         {
             connector : pomelo.connectors.sioconnector,
@@ -44,6 +47,8 @@ app.configure('production|development', 'connector', function(){
 //        });
 //});
 app.configure('production|development', 'gate', function(){
+    var dbclient = require('./app/dao/mysql/mysql').init(app);
+    app.set('dbclient', dbclient);
     app.set('connectorConfig',
         {
             connector : pomelo.connectors.sioconnector,

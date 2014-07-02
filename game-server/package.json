@@ -5,7 +5,9 @@
     "dependencies":{
         "pomelo":"1.0.0",
         "crc": "0.2.0",
-        "request":"2.36"
+        "request":"2.36",
+        "generic-pool": ">=1.0.9",
+        "mysql": ">=2.0"
     }
 }
 

@@ -1,0 +1,17 @@
+{
+	"development": {
+	  "host" : "192.168.101.4",
+		"port" : "3306",
+		"database" : "mogugame",
+		"user" : "root",
+		"password" : "htfsdb"
+	},
+
+	"production": {
+        "host" : "192.168.101.4",
+        "port" : "3306",
+        "database" : "mogugame",
+        "user" : "root",
+        "password" : "htfsdb"
+	}
+}

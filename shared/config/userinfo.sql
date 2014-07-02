@@ -1,0 +1,1 @@
+CREATE TABLE `userinfocom_mogu_game_tetris` (`username` varchar(100) NOT NULL,`nickname` varchar(100) DEFAULT NULL,`point` int(11) DEFAULT NULL,`rank` varchar(10) DEFAULT NULL,`timeline` int(11) DEFAULT NULL,PRIMARY KEY (`username`)) ENGINE=MyISAM DEFAULT CHARSET=utf8;

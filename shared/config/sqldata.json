@@ -1,0 +1,9 @@
+//select * from sysobjects where name='your table name '
+{
+    "querytable":"select * from sysobjects where name=?",
+    "createtable":"CREATE TABLE `?` (`username` varchar(100) NOT NULL,`nickname` varchar(100) DEFAULT NULL,`point` int(11) DEFAULT NULL,`rank` varchar(10) DEFAULT NULL,`timeline` int(11) DEFAULT NULL,PRIMARY KEY (`username`)) ENGINE=MyISAM DEFAULT CHARSET=utf8;",
+    "tablegameroom":"CREATE TABLE `gameroom` (`appcode` varchar(100) NOT NULL,`romeinfo` text,`timeline` int(11) DEFAULT NULL,PRIMARY KEY (`appcode`)) ENGINE=MyISAM DEFAULT CHARSET=utf8;",
+    "queryuser":"select * from ? where username=?",
+    "queryroomlist":"select * from gameroom where appcode=?"
+
+}

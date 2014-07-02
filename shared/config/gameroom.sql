@@ -1,0 +1,1 @@
+CREATE TABLE `gameroom` (`appcode` varchar(100) NOT NULL,`romeinfo` text,`timeline` int(11) DEFAULT NULL,PRIMARY KEY (`appcode`)) ENGINE=MyISAM DEFAULT CHARSET=utf8;
