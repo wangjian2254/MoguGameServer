@@ -1,7 +1,13 @@
-var logger = require('pomelo-logger').getLogger(__filename);
+//var logger = require('pomelo-logger').getLogger(__filename);
 var pomelo = require('pomelo');
+var Room = require('./room');
+var utils = require('../util/utils');
 
+var request = require('request');
 var roomDao = module.exports;
+var sqldata = require('../../../shared/config/sqldata.json')
+
+var settings = require('../../config/settings.json')
 
 /**
  * Create Bag
@@ -9,47 +15,49 @@ var roomDao = module.exports;
  * @param {Number} playerId Player Id
  * @param {function} cb Call back function
  */
-roomDao.createBag = function(playerId, cb) {
-	var sql = 'insert into Bag (playerId, items, itemCount) values (?, ?, ?)';
-	var args = [playerId, '{}', 20];
+roomDao.getRoomByAppcode = function(appcode, cb) {
+	var self = this;
+	var args = [appcode];
 	
-	pomelo.app.get('dbclient').insert(sql, args, function(err, res) {
+	pomelo.app.get('dbclient').insert(sqldata.queryroomlist, args, function(err, res) {
 		if (err) {
-			logger.error('create bag for roomDao failed! ' + err.stack);
+//			logger.error('create bag for roomDao failed! ' + err.stack);
 			utils.invokeCallback(cb, err, null);
 		} else {
-			var bag = new Bag({id: res.insertId});
-			utils.invokeCallback(cb, null, bag);
+            if (res && res.length === 1) {
+                var result = res[0];
+                var room = new Room(JSON.parse(result.romeinfo));
+                room['timeline']=result.timeline;
+                cb(null, room);
+            } else {
+                request(settings.moguurl+'?appcode='+appcode,function(error,response,body){
+                    if(!error && response.statusCode == 200){
+                        self.createRoom(appcode,body,cb);
+                    }else{
+                        utils.invokeCallback(cb, err, null);
+                    }
+                });
+            }
 		}
 	});
-	
 };
 
-/**
- * Find bag by playerId 
- * 
- * @param {Number} playerId Player id.
- * @param {function} cb Call back function.
- */
-roomDao.getBagByPlayerId = function(playerId, cb) {
-	var sql = 'select * from Bag where playerId = ?';
-	var args = [playerId];
 
-	pomelo.app.get('dbclient').query(sql, args, function(err, res) {
-		if (err) {
-			logger.error('get bag by playerId for roomDao failed! ' + err.stack);
-			utils.invokeCallback(cb, err, null);
-		} else {
-			if (res && res.length === 1) {
-				var result = res[0];
-				var bag = new Bag({ id: result.id, itemCount: result.itemCount, items: JSON.parse(result.items) });
-				cb(null, bag);
-			} else {
-				logger.error('bag not exist');
-				utils.invokeCallback(cb, new Error(' bag not exist '), null);
-			}
-		}
-	});
+roomDao.createRoom = function(appcode,roominfo, cb) {
+    if(typeof roominfo !== 'string'){
+        roominfo = JSON.stringify(items);
+    }
+    var args = [appcode, roominfo, new Date().getTime()];
+
+    pomelo.app.get('dbclient').insert(sqldata.createroomlist, args, function(err, res) {
+        if (err) {
+            utils.invokeCallback(cb, err, null);
+        } else {
+            var room = new Room(JSON.parse(romeinfo));
+            room['timeline']=args[2];
+            utils.invokeCallback(cb, null, room);
+        }
+    });
 };
 
 /**
@@ -57,36 +65,18 @@ roomDao.getBagByPlayerId = function(playerId, cb) {
  * @param {Object} bag Bag object.
  * @param {function} cb Call back function.
  */
-roomDao.update = function(bag, cb) {
-	var sql = 'update Bag set items = ? where id = ?';
-	var items = bag.items;
-	if (typeof items !== 'string') {
-		items = JSON.stringify(items);
-	}
-	
-	var args = [items, bag.id];
+roomDao.update = function(appcode,roominfo, cb) {
+    var args = [roominfo, new Date().getTime(),appcode];
 
-	pomelo.app.get('dbclient').query(sql, args, function(err, res) {
-		if (err) {
-			logger.error('write mysql failed!　' + sql + ' ' + JSON.stringify(bag));
-		}
-		
-		utils.invokeCallback(cb, !!err);
-	});
+    pomelo.app.get('dbclient').insert(sqldata.updateroomlist, args, function(err, res) {
+        if (err) {
+            utils.invokeCallback(cb, err, null);
+        } else {
+            var room = new Room(JSON.parse(romeinfo));
+            room['timeline']=args[1];
+            utils.invokeCallback(cb, null, room);
+        }
+    });
 };
 
-/**
- * Destroy a bag
- * 
- * @param {number} playerId
- * @param {function} cb
- */
-roomDao.destroy = function(playerId, cb) {
-	var sql = 'delete from Bag where playerId = ?';
-	var args = [playerId];
-
-	pomelo.app.dbclinet.query(sql, args, function(err, res) {
-		utils.invokeCallback(cb, err, res);
-	});
-};
 

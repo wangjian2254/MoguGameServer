@@ -3,12 +3,13 @@
  */
 var fs = require('fs');
 var request = require('request');
+var settings = require('../../config/settings.json')
 var path = fs.realpathSync('.')
 //console.log(path);
 var filepath = path+'/config/roominfo.json';
 module.exports.downloadRoomJsonInfo = function(cb){
 
-        request('http://gamerank.mmggoo.com/RoomJSONFile',function(error,response,body){
+        request(settings.moguurl,function(error,response,body){
             if(!error && response.statusCode == 200){
 //                console.log(fs.realpathSync('.'));
 

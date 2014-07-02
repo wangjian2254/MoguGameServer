@@ -1,17 +1,17 @@
 {
 	"development": {
-	  "host" : "192.168.101.4",
+	  "host" : "imopenfire.ccvstgwywbvo.ap-northeast-1.rds.amazonaws.com",
 		"port" : "3306",
 		"database" : "mogugame",
-		"user" : "root",
-		"password" : "htfsdb"
+		"user" : "openfire",
+		"password" : "05992254wj"
 	},
 
 	"production": {
-        "host" : "192.168.101.4",
+        "host" : "imopenfire.ccvstgwywbvo.ap-northeast-1.rds.amazonaws.com",
         "port" : "3306",
         "database" : "mogugame",
-        "user" : "root",
-        "password" : "htfsdb"
+        "user" : "openfire",
+        "password" : "05992254wj"
 	}
 }
