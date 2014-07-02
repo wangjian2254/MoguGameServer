@@ -26,6 +26,7 @@ SyncRoomInfo.prototype.start = function(cb){
 
         if(!s){
             roominfofile.downloadRoomJsonInfo(function(data,stat){
+                self.app.set('roominfo',{},true);
                 self.app.roominfo=data;
                 self.app.roominfo['timeline']= stat.mtime;
                 console.log('roominfo inited');
@@ -35,11 +36,13 @@ SyncRoomInfo.prototype.start = function(cb){
         }else{
             console.log(s.mtime);
             if(!self.app.roominfo||self.app.roominfo.timeline< s.mtime){
+                self.app.set('roominfo',{},true);
                 self.app.roominfo = roominfofile.getRoomJsonData();
                 self.app.roominfo['timeline']= s.mtime;
                 console.log('roominfo changed');
             }
         }
+//        console.log(self.app.get('alluser'));
 
     };
     console.log('start');

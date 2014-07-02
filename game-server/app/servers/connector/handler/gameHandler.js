@@ -14,6 +14,7 @@ var handler = Handler.prototype;
 
 handler.checkOnLine = function(msg,session,next){
     next(null, {
+        route:'checkOnLine',
         code: 200
     });
     return;
@@ -25,39 +26,45 @@ handler.addRoomList = function(msg, session, next) {
     var appcode = msg.appcode;//appcode
     var username = msg.username;
     var sessionService = self.app.get('sessionService');
-    //duplicate log in
-    if( !! sessionService.getByUid(username)) {
-        next(null, {
-            code: 500,
-            error: true
+    //第一次登陆
+    if( ! sessionService.getByUid(username)) {
+        session.bind(username);
+        session.set('username', username);
+        session.set('room', appcode);
+        session.pushAll(function(err) {
+            if(err) {
+                console.error('set room for session service failed! error is : %j', err.stack);
+            }
         });
-        return;
+        session.on('closed', onUserLeave.bind(null, self.app));
     }
     var roominfo = self.app.roominfo[msg.appcode];
     if(!roominfo){
         next(null,{
+            route:'addRoomList',
             code: 500,
             error: true,
             message: '游戏房间信息尚未定义。'
         });
         return;
     }
-    console.log(msg);
+    if(!self.app.get('alluser')[appcode]){
+        self.app.get('alluser')[appcode]={};
+    }
+//    var userinfo = {};
+//    userinfo['username']=msg.username;
+//    userinfo['nickname']=msg.nickname;
+//    userinfo['head']=msg.head;
+//    userinfo['rank']=msg.rank;
+//    userinfo['point']=msg.point;
+//    self.app.get('alluser')[appcode][username]=userinfo;
 
-    session.bind(username);
-    session.set('username', username);
-    session.set('room', appcode);
-    session.pushAll(function(err) {
-        if(err) {
-            console.error('set room for session service failed! error is : %j', err.stack);
-        }
-    });
-    session.on('closed', onUserLeave.bind(null, self.app));
 
     //put user into channel
-    self.app.rpc.chat.roommemberRemote.add(session, username,appcode,msg.userinfo, self.app.get('serverId'), appcode, true, function(){
+    self.app.rpc.chat.roommemberRemote.add(session, appcode,username,msg.userinfo, self.app.get('serverId'), true, function(){
 
         next(null, {
+            route:'queryRoomList',
             code:200,
             roomlist:query(0,18,roominfo,self),
             start:0
@@ -116,17 +123,11 @@ handler.queryRoomList = function(msg,session,next){
     var self = this;
     var appcode = msg.appcode;//appcode
     var sessionService = self.app.get('sessionService');
-    //duplicate log in
-    if( !! sessionService.getByUid(username)) {
-        next(null, {
-            code: 500,
-            error: true
-        });
-        return;
-    }
+
     var roominfo = self.app.roominfo[appcode];
     if(!roominfo){
         next(null,{
+            route:'queryRoomList',
             code: 500,
             error: true,
             message: '游戏房间信息尚未定义。'
@@ -137,6 +138,7 @@ handler.queryRoomList = function(msg,session,next){
     var limit = msg.limit|18;
 
     next(null,{
+        route:'queryRoomList',
         code:200,
         roomlist:query(start,limit,roominfo,self),
         start:start
@@ -155,14 +157,30 @@ var onUserLeave = function(app, session) {
     if(!session || !session.uid) {
         return;
     }
-    app.rpc.chat.roommemberRemote.kick(session, session.uid,session.get('room'), app.get('serverId'), session.get('room'), null);
+    app.rpc.chat.roommemberRemote.kick(session,  session.get('room'),session.uid, app.get('serverId'), null);
 };
 
 
 handler.quiteRoomList = function(msg,session,next){
-    this.app.rpc.chat.roommemberRemote.kick(session, session.uid,session.get('room'), this.app.get('serverId'), session.get('room'), null);
+    this.app.rpc.chat.roommemberRemote.kick(session, session.get('room'),session.uid, this.app.get('serverId'), null);
     next(null,{
         code:200
     });
     return;
+}
+
+
+handler.getMembersByRoom = function(msg,session,next){
+    this.app.rpc.chat.chatRemote.getRoomMembers(session,msg.roomid,false,function(users){
+        next(null,{
+            code:200,
+            route:'getMembersByRoom',
+            romm:{
+                roomid:msg.roomid,
+                users:users,
+                appcode:msg.appcode
+            }
+        });
+        return;
+    })
 }

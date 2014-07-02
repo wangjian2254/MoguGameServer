@@ -19,8 +19,8 @@ var RoomMember = function(app) {
  * @param {boolean} flag channel parameter
  *
  */
-RoomMember.prototype.add = function(username,appcode,userinfo, sid, name, flag, cb) {
-    var channel = this.channelService.getChannel(name, flag);
+RoomMember.prototype.add = function(appcode,username,userinfo, sid, flag, cb) {
+    var channel = this.channelService.getChannel(appcode, flag);
 //    var param = {
 //        route: 'onAdd',
 //        user: username
@@ -48,9 +48,9 @@ RoomMember.prototype.add = function(username,appcode,userinfo, sid, name, flag, 
  * @return {Array} users uids in channel
  *
  */
-RoomMember.prototype.get = function(appcode,name, flag) {
+RoomMember.prototype.get = function(appcode, flag) {
     var users = [];
-    var channel = this.channelService.getChannel(name, flag);
+    var channel = this.channelService.getChannel(appcode, flag);
     if( !! channel) {
         users = channel.getMembers();
     }
@@ -60,6 +60,18 @@ RoomMember.prototype.get = function(appcode,name, flag) {
     return users;
 };
 
+RoomMember.prototype.changeRoomInfo = function(appcode,changed,roomid,username,userinfo,sid,flag){
+    var channel = this.channelService.getChannel(appcode, flag);
+    var param = {
+        route: 'memberChanged',
+        changed:changed,
+        user: username,
+        roomid:roomid,
+        userinfo: userinfo
+    };
+    channel.pushMessage(param);
+}
+
 /**
  * Kick user out chat channel.
  *
@@ -68,13 +80,18 @@ RoomMember.prototype.get = function(appcode,name, flag) {
  * @param {String} name channel name
  *
  */
-RoomMember.prototype.kick = function(username,appcode, sid, name, cb) {
-    var channel = this.channelService.getChannel(name, false);
+RoomMember.prototype.kick = function(appcode,username, sid, cb) {
+    var channel = this.channelService.getChannel(appcode, false);
     // leave channel
     if( !! channel) {
         channel.leave(username, sid);
     }
-    delete this.app.get('alluser')[appcode][username];
+    try{
+        delete this.app.get('alluser')[appcode][username];
+    }catch (err){
+
+    }
+
 //    var username = uid.split('*')[0];
 //    var param = {
 //        route: 'onLeave',
