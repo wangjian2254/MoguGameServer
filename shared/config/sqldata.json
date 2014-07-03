@@ -1,9 +1,10 @@
 {
     "querytable":"select * from sysobjects where name=?",
-    "createtable":"CREATE TABLE `?` (`username` varchar(100) NOT NULL,`nickname` varchar(100) DEFAULT NULL,`point` int(11) DEFAULT NULL,`rank` varchar(10) DEFAULT NULL,`timeline` int(11) DEFAULT NULL,PRIMARY KEY (`username`)) ENGINE=MyISAM DEFAULT CHARSET=utf8;",
-    "tablegameroom":"CREATE TABLE `gameroom` (`appcode` varchar(100) NOT NULL,`roominfo` text,`timeline` bigint(20) DEFAULT NULL,PRIMARY KEY (`appcode`)) ENGINE=MyISAM DEFAULT CHARSET=utf8;",
+    "createtable":"CREATE TABLE `?` (`username` varchar(100) NOT NULL,`nickname` varchar(100) DEFAULT NULL,`point` int(11) DEFAULT NULL,`rank` varchar(10) DEFAULT NULL,`timeline` bigint(20) DEFAULT NULL,PRIMARY KEY (`username`)) ENGINE=MyISAM DEFAULT CHARSET=utf8;",
+    "creategameroom":"CREATE TABLE `gameroom` (`appcode` varchar(100) NOT NULL,`roominfo` text,`timeline` bigint(20) DEFAULT NULL,PRIMARY KEY (`appcode`)) ENGINE=MyISAM DEFAULT CHARSET=utf8;",
     "queryuser":"select * from ? where username=?",
-    "createuser":"insert into  from ?  (username,nickname,point,rank,timeline) values (?,?,?,?,?)",
+    "queryuserbynames":"select * from ? where username in (",
+    "createuser":"insert into ?  (username,nickname,point,rank,timeline) values (?,?,?,?,?)",
     "updateuser":"update from ? set nickname = ?,point =?,rank = ?,timeline =? where username=?",
     "queryroomlist":"select * from gameroom where appcode=?",
     "createroomlist":"insert into gameroom (appcode,roominfo,timeline) values (?,?,?)",

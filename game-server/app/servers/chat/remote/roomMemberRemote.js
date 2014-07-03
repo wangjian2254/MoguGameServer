@@ -20,49 +20,25 @@ var RoomMemberRemote = function(app) {
  *
  */
 RoomMemberRemote.prototype.add = function(appcode,username,userinfo, sid, flag, cb) {
-    var channel = this.channelService.getChannel(appcode, flag);
-//    var param = {
-//        route: 'onAdd',
-//        user: username
-//    };
-//    channel.pushMessage(param);
-
-    if( !! channel) {
-        channel.add(username, sid);
-    }
-    if(!this.app.get('alluser')[appcode]){
-        this.app.get('alluser')[appcode]={};
-    }
-    this.app.get('alluser')[appcode][username]=userinfo;
-    cb();
-
-//    cb(this.get(name, flag));
+    gameUserDao.updateGameUser(appcode,userinfo,function(err,gameuser){
+        if(err){
+            cb(err,null);
+            return;
+        }
+        var channel = this.channelService.getChannel(appcode, flag);
+        if( !! channel) {
+            channel.add(username, sid);
+        }
+        cb(null,gameuser);
+    });
 };
 
-/**
- * Get user from chat channel.
- *
- * @param {Object} opts parameters for request
- * @param {String} name channel name
- * @param {boolean} flag channel parameter
- * @return {Array} users uids in channel
- *
- */
-RoomMemberRemote.prototype.get = function(appcode, flag) {
-    var users = [];
-    var channel = this.channelService.getChannel(appcode, flag);
-    if( !! channel) {
-        users = channel.getMembers();
-    }
-    for(var i = 0; i < users.length; i++) {
-        users[i] = this.app.get('alluser')[appcode][users[i]];
-    }
-    return users;
-};
+
 
 RoomMemberRemote.prototype.changeRoomInfo = function(appcode,changed,roomid,username,userinfo,sid,flag){
     var channel = this.channelService.getChannel(appcode, flag);
     var param = {
+        code:200,
         route: 'memberChanged',
         changed:changed,
         user: username,
@@ -91,12 +67,5 @@ RoomMemberRemote.prototype.kick = function(appcode,username, sid, cb) {
     }catch (err){
 
     }
-
-//    var username = uid.split('*')[0];
-//    var param = {
-//        route: 'onLeave',
-//        user: username
-//    };
-//    channel.pushMessage(param);
     cb();
 };

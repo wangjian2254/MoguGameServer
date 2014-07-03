@@ -34,6 +34,7 @@ handler.queryEntry = function(msg, session, next) {
 		});
 		return;
 	}
+    console.log(uid);
 	// select connector
 	var res = dispatcher.dispatch(uid, connectors);
 	next(null, {

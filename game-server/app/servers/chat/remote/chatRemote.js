@@ -1,3 +1,4 @@
+var gameUserDao = require('../../../dao/gameUserDao');
 module.exports = function(app) {
 	return new ChatRemote(app);
 };
@@ -17,26 +18,27 @@ var ChatRemote = function(app) {
  *
  */
 ChatRemote.prototype.add = function(roomid,username,appcode, sid, flag, cb) {
-	var channel = this.channelService.getChannel(roomid, flag);
-	var param = {
-		route: 'onAdd',
-		user: username,
-        roomid:roomid,
-        userinfo: this.app.get('alluser')[appcode][username]
-	};
-	channel.pushMessage(param);
-
-//    var roomlistchannel = this.channelService.getChannel(appcode,flag);
-//    roomlistchannel.pushMessage(param);
-
-	if( !! channel) {
-		channel.add(username, sid);
-	}
-
-    //put user into channel
-    this.app.rpc.chat.roommemberRemote.changeRoomInfo(session, appcode,'in',roomid,username,param.userinfo, self.app.get('serverId'), true);
-	cb(this.get(roomid, flag));
-
+    gameUserDao.getUserByAppcode(appcode,username,function(err,gameuser){
+        if(err){
+            cb(err,null);
+            return;
+        }
+        var channel = this.channelService.getChannel(roomid, flag);
+        var param = {
+            code:200,
+            route: 'onAdd',
+            user: username,
+            roomid:roomid,
+            userinfo: gameuser
+        };
+        channel.pushMessage(param);
+        if( !! channel) {
+            channel.add(username, sid);
+        }
+        //put user into channel
+        this.app.rpc.chat.roommemberRemote.changeRoomInfo(session, appcode,'in',roomid,username,gameuser, self.app.get('serverId'), true);
+        this.get(roomid, appcode,flag,cb);
+    });
 };
 
 /**
@@ -48,20 +50,19 @@ ChatRemote.prototype.add = function(roomid,username,appcode, sid, flag, cb) {
  * @return {Array} users uids in channel
  *
  */
-ChatRemote.prototype.get = function(name, flag) {
-	var users = [];
+ChatRemote.prototype.get = function(name,appcode, flag,cb) {
 	var channel = this.channelService.getChannel(name, flag);
 	if( !! channel) {
-		users = channel.getMembers();
-	}
-	for(var i = 0; i < users.length; i++) {
-		users[i] = this.app.get('alluser')[appcode][users[i]];
-	}
-	return users;
+        gameUserDao.queryGameUsersByUsernames(appcode,channel.getMembers(),function(err,users){
+            cb(null,users);
+        });
+	}else{
+        cb(null,[]);
+    }
 };
 
-ChatRemote.prototype.getRoomMembers = function(roomid,flag,cb){
-    cb(this.get(roomid,flag));
+ChatRemote.prototype.getRoomMembers = function(roomid,appcode,flag,cb){
+    this.get(roomid,appcode,flag,cb);
 }
 
 /**
@@ -73,18 +74,21 @@ ChatRemote.prototype.getRoomMembers = function(roomid,flag,cb){
  *
  */
 ChatRemote.prototype.kick = function(roomid,username,appcode, sid, cb) {
+
+
 	var channel = this.channelService.getChannel(roomid, false);
 	// leave channel
 	if( !! channel) {
 		channel.leave(username, sid);
 	}
 	var param = {
+        code:200,
 		route: 'onLeave',
         roomid:roomid,
 		user: username
 	};
 	channel.pushMessage(param);
-    this.app.rpc.chat.roommemberRemote.changeRoomInfo(session, appcode, 'out',roomid,username,param.userinfo, self.app.get('serverId'), true);
+    this.app.rpc.chat.roommemberRemote.changeRoomInfo(session, appcode, 'out',roomid,username,null, self.app.get('serverId'), true);
 
     cb();
 };
@@ -99,6 +103,15 @@ ChatRemote.prototype.uploadEndPoint = function(roomid,username,appcode,content, 
 };
 
 
+
+ChatRemote.prototype.getEndPoint = function(roomid,username,appcode, cb) {
+    if(!this.app.get('gameroom')[roomid]){
+        cb({});
+    }else{
+        cb(this.app.get('gameroom')[roomid]);
+    }
+
+};
 
 ChatRemote.prototype.cleanPoint = function(roomid,username,appcode, cb) {
     this.app.get('gameroom')[roomid]={};

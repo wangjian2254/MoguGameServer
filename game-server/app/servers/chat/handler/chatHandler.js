@@ -86,6 +86,19 @@ handler.uploadEndPoint = function(msg, session, next) {
 
 };
 
+handler.getEndPoint = function(msg, session, next) {
+    var roomid = session.get('roomid');
+    this.app.rpc.chat.chatRemote.getEndPoint(session,msg.roomid,msg.username,msg.appcode,function(result){
+        next(null, {
+            code:200,
+            route:'uploadEndPoint',
+            result:result
+        });
+        return;
+    })
+
+};
+
 /**
  * clean result point
  *

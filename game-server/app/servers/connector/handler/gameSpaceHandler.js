@@ -36,8 +36,16 @@ handler.addRoom = function(msg, session, next) {
         session.on('closed', onUserLeave.bind(null, self.app));
     }
 	//put user into channel
-	self.app.rpc.chat.chatRemote.add(session, roomid,username,appcode, self.app.get('serverId'), true, function(users){
-		next(null, {
+	self.app.rpc.chat.chatRemote.add(session, roomid,username,appcode, self.app.get('serverId'), true, function(err,users){
+        if(err){
+            next(null,{
+                code:500,
+                route:'addRoom',
+                message:'获取房间内玩家列表失败'
+            });
+            return;
+        }
+        next(null, {
             route:'addRoom',
 			users:users
 		});

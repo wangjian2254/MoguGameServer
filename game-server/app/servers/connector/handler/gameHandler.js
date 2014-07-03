@@ -2,6 +2,7 @@
  * Created by wangjian2254 on 14-6-29.
  */
 var roomDao = require('../../../dao/roomDao');
+var gameUserDao = require('../../../dao/gameUserDao');
 module.exports = function(app) {
     return new Handler(app);
 };
@@ -39,27 +40,42 @@ handler.addRoomList = function(msg, session, next) {
         });
         session.on('closed', onUserLeave.bind(null, self.app));
     }
+    console.log('addRoomList  start');
     roomDao.getRoomByAppcode(msg.appcode,function(err,roominfo){
 
         if(err){
-                next(null,{
-                    route:'addRoomList',
-                    code: 500,
-                    error: true,
-                    message: '游戏房间信息尚未定义。'
-                });
-                return;
+            console.log(err);
+            next(null,{
+                route:'addRoomList',
+                code: 500,
+                error: true,
+                message: '游戏房间信息尚未定义。'
+            });
+            return;
         }else{
             //put user into channel
-            self.app.rpc.chat.roomMemberRemote.add(session, appcode,username,msg.userinfo, self.app.get('serverId'), true, function(){
+            gameUserDao.updateGameUser(appcode,msg,function(err0,gameuser){
+                if(err0){
+                    console.log(err0);
+                    next(null,{
+                        route:'addRoomList',
+                        code: 500,
+                        error: true,
+                        message: '用户信息缓存错误。'
+                    });
+                }else{
+                    self.app.rpc.chat.roomMemberRemote.add(session, appcode,username,msg, self.app.get('serverId'), true, function(err,gameuser){
 
-                next(null, {
-                    route:'queryRoomList',
-                    code:200,
-                    roomlist:query(0,18,roominfo,self),
-                    start:0
-                });
-            });
+                        next(null, {
+                            route:'queryRoomList',
+                            code:200,
+                            roomlist:query(0,18,roominfo,self),
+                            start:0
+                        });
+                    });
+                }
+            })
+
         }
     });
 }
@@ -139,7 +155,15 @@ handler.quiteRoomList = function(msg,session,next){
 
 
 handler.getMembersByRoom = function(msg,session,next){
-    this.app.rpc.chat.chatRemote.getRoomMembers(session,msg.roomid,false,function(users){
+    this.app.rpc.chat.chatRemote.getRoomMembers(session,msg.roomid,msg.appcode,false,function(err,users){
+        if(err){
+            next(null,{
+                code:500,
+                route:'getMembersByRoom',
+                message:'获取房间内玩家列表失败'
+            });
+            return;
+        }
         next(null,{
             code:200,
             route:'getMembersByRoom',

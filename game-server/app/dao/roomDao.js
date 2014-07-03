@@ -10,7 +10,7 @@ var sqldata = require('../../../shared/config/sqldata.json');
 var settings = require('../../config/settings.json');
 
 /**
- * Create Bag
+ * Create Room
  *
  * @param {Number} playerId Player Id
  * @param {function} cb Call back function
@@ -28,8 +28,15 @@ roomDao.getRoomByAppcode = function(appcode, cb) {
 	
 	pomelo.app.get('dbclient').insert(sqldata.queryroomlist, args, function(err, res) {
 		if (err) {
-//			logger.error('create bag for roomDao failed! ' + err.stack);
-			utils.invokeCallback(cb, err, null);
+            pomelo.app.get('dbclient').insert(sqldata.creategameroom, null, function(err1, res1) {
+                if (err1) {
+                    utils.invokeCallback(cb, err, null);
+                } else {
+                    self.getRoomByAppcode(appcode,function(err3,res3){
+                        utils.invokeCallback(cb, err3, res3);
+                    });
+                }
+            });
 		} else {
             if (res && res.length === 1) {
                 var result = res[0];
@@ -40,7 +47,20 @@ roomDao.getRoomByAppcode = function(appcode, cb) {
             } else {
                 request(settings.moguurl+'?appcode='+appcode,function(error,response,body){
                     if(!error && response.statusCode == 200){
-                        self.createRoom(appcode,body,cb);
+                        pomelo.app.get('dbclient').insert(sqldata.createtable.replace(/\?/,appcode.replace(/\./g,'_')), null, function(err0, res0) {
+                            if (err0) {
+                                utils.invokeCallback(cb, err0, null);
+                            } else {
+                                self.createRoom(appcode,body,function(e,r){
+                                    if(e){
+                                        utils.invokeCallback(cb, err, null);
+                                    }else{
+                                        utils.invokeCallback(cb, null, r);
+                                    }
+                                });
+
+                            }
+                        });
                     }else{
                         utils.invokeCallback(cb, err, null);
                     }
@@ -87,5 +107,7 @@ roomDao.update = function(appcode,roominfo, cb) {
         }
     });
 };
+
+
 
 
