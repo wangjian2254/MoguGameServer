@@ -1,6 +1,7 @@
 /**
  * Created by wangjian2254 on 14-6-29.
  */
+var roomDao = require('../../../dao/roomDao');
 module.exports = function(app) {
     return new Handler(app);
 };
@@ -38,82 +39,49 @@ handler.addRoomList = function(msg, session, next) {
         });
         session.on('closed', onUserLeave.bind(null, self.app));
     }
-    var roominfo = self.app.roominfo[msg.appcode];
-    if(!roominfo){
-        next(null,{
-            route:'addRoomList',
-            code: 500,
-            error: true,
-            message: '游戏房间信息尚未定义。'
-        });
-        return;
-    }
-    if(!self.app.get('alluser')[appcode]){
-        self.app.get('alluser')[appcode]={};
-    }
-//    var userinfo = {};
-//    userinfo['username']=msg.username;
-//    userinfo['nickname']=msg.nickname;
-//    userinfo['head']=msg.head;
-//    userinfo['rank']=msg.rank;
-//    userinfo['point']=msg.point;
-//    self.app.get('alluser')[appcode][username]=userinfo;
+    roomDao.getRoomByAppcode(msg.appcode,function(err,roominfo){
 
+        if(err){
+                next(null,{
+                    route:'addRoomList',
+                    code: 500,
+                    error: true,
+                    message: '游戏房间信息尚未定义。'
+                });
+                return;
+        }else{
+            //put user into channel
+            self.app.rpc.chat.roomMemberRemote.add(session, appcode,username,msg.userinfo, self.app.get('serverId'), true, function(){
 
-    //put user into channel
-    self.app.rpc.chat.roommemberRemote.add(session, appcode,username,msg.userinfo, self.app.get('serverId'), true, function(){
-
-        next(null, {
-            route:'queryRoomList',
-            code:200,
-            roomlist:query(0,18,roominfo,self),
-            start:0
-        });
+                next(null, {
+                    route:'queryRoomList',
+                    code:200,
+                    roomlist:query(0,18,roominfo,self),
+                    start:0
+                });
+            });
+        }
     });
-
 }
 
 var query = function(start,limit,roominfo,self){
     var roominfolist = [];
     var item=null;
     var room=null;
-    var channel=null;
-    var users = null;
-    var user = null;
+
+
+
     for (var i=start;i<start+limit;i++){
         if(roominfo.roomlist.length<=i+1){
             break;
         }
+
         item = roominfo.roomlist[i];
         room = {};
         room['roomname'] = item['roomname'];
         room['maxnum'] = item['maxnum'];
         room['appcode'] = item['appcode'];
         room['spaceid'] = item['spaceid'];
-        room['headlist'] = [];
-        room['nicknamelist'] = [];
-        room['userlist'] = [];
-        room['ranklist'] = [];
-        room['pointlist'] = [];
-        channel = self.channelService.getChannel(room.appcode, false);
-        if(!!channel){
-            channel.getMembers();
-            if( !! channel) {
-                users = channel.getMembers();
-            }
-            for(var i = 0; i < users.length; i++) {
-                users[i] = self.app.get('alluser')[appcode][users[i]];
-            }
-            room['users']=users;
-            for(var i = 0; i < users.length; i++) {
-                user = users[i];
-                room['headlist'].push(user.head);
-                room['nicknamelist'].push(user.nickname);
-                room['userlist'].push(user.username);
-                room['ranklist'].push(user.rank);
-                room['pointlist'].push(user.point);
-            }
-        }
         roominfolist.push(room);
     }
     return roominfolist;
@@ -157,12 +125,12 @@ var onUserLeave = function(app, session) {
     if(!session || !session.uid) {
         return;
     }
-    app.rpc.chat.roommemberRemote.kick(session,  session.get('room'),session.uid, app.get('serverId'), null);
+    app.rpc.chat.roomMemberRemote.kick(session,  session.get('room'),session.uid, app.get('serverId'), null);
 };
 
 
 handler.quiteRoomList = function(msg,session,next){
-    this.app.rpc.chat.roommemberRemote.kick(session, session.get('room'),session.uid, this.app.get('serverId'), null);
+    this.app.rpc.chat.roomMemberRemote.kick(session, session.get('room'),session.uid, this.app.get('serverId'), null);
     next(null,{
         code:200
     });

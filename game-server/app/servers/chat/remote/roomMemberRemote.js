@@ -2,10 +2,10 @@
  * Created by wangjian2254 on 14-6-29.
  */
 module.exports = function(app) {
-    return new RoomMember(app);
+    return new RoomMemberRemote(app);
 };
 
-var RoomMember = function(app) {
+var RoomMemberRemote = function(app) {
     this.app = app;
     this.channelService = app.get('channelService');
 };
@@ -19,7 +19,7 @@ var RoomMember = function(app) {
  * @param {boolean} flag channel parameter
  *
  */
-RoomMember.prototype.add = function(appcode,username,userinfo, sid, flag, cb) {
+RoomMemberRemote.prototype.add = function(appcode,username,userinfo, sid, flag, cb) {
     var channel = this.channelService.getChannel(appcode, flag);
 //    var param = {
 //        route: 'onAdd',
@@ -48,7 +48,7 @@ RoomMember.prototype.add = function(appcode,username,userinfo, sid, flag, cb) {
  * @return {Array} users uids in channel
  *
  */
-RoomMember.prototype.get = function(appcode, flag) {
+RoomMemberRemote.prototype.get = function(appcode, flag) {
     var users = [];
     var channel = this.channelService.getChannel(appcode, flag);
     if( !! channel) {
@@ -60,7 +60,7 @@ RoomMember.prototype.get = function(appcode, flag) {
     return users;
 };
 
-RoomMember.prototype.changeRoomInfo = function(appcode,changed,roomid,username,userinfo,sid,flag){
+RoomMemberRemote.prototype.changeRoomInfo = function(appcode,changed,roomid,username,userinfo,sid,flag){
     var channel = this.channelService.getChannel(appcode, flag);
     var param = {
         route: 'memberChanged',
@@ -80,7 +80,7 @@ RoomMember.prototype.changeRoomInfo = function(appcode,changed,roomid,username,u
  * @param {String} name channel name
  *
  */
-RoomMember.prototype.kick = function(appcode,username, sid, cb) {
+RoomMemberRemote.prototype.kick = function(appcode,username, sid, cb) {
     var channel = this.channelService.getChannel(appcode, false);
     // leave channel
     if( !! channel) {

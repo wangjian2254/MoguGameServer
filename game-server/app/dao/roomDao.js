@@ -5,9 +5,9 @@ var utils = require('../util/utils');
 
 var request = require('request');
 var roomDao = module.exports;
-var sqldata = require('../../../shared/config/sqldata.json')
-
-var settings = require('../../config/settings.json')
+var sqldata = require('../../../shared/config/sqldata.json');
+//console.log(sqldata);
+var settings = require('../../config/settings.json');
 
 /**
  * Create Bag
@@ -16,6 +16,13 @@ var settings = require('../../config/settings.json')
  * @param {function} cb Call back function
  */
 roomDao.getRoomByAppcode = function(appcode, cb) {
+    var room=pomelo.app.get('gameroom')[appcode];
+    if(room){
+        console.log("room info on cache");
+        cb(null, room);
+        return;
+    }
+    console.log("room info query db;");
 	var self = this;
 	var args = [appcode];
 	
@@ -26,8 +33,9 @@ roomDao.getRoomByAppcode = function(appcode, cb) {
 		} else {
             if (res && res.length === 1) {
                 var result = res[0];
-                var room = new Room(JSON.parse(result.romeinfo));
+                var room = new Room(JSON.parse(result.roominfo));
                 room['timeline']=result.timeline;
+                pomelo.app.get('gameroom')[appcode]=room;
                 cb(null, room);
             } else {
                 request(settings.moguurl+'?appcode='+appcode,function(error,response,body){
@@ -48,13 +56,14 @@ roomDao.createRoom = function(appcode,roominfo, cb) {
         roominfo = JSON.stringify(items);
     }
     var args = [appcode, roominfo, new Date().getTime()];
-
+//    console.log(args);
     pomelo.app.get('dbclient').insert(sqldata.createroomlist, args, function(err, res) {
         if (err) {
             utils.invokeCallback(cb, err, null);
         } else {
-            var room = new Room(JSON.parse(romeinfo));
+            var room = new Room(JSON.parse(roominfo));
             room['timeline']=args[2];
+            pomelo.app.get('gameroom')[appcode]=room;//加入缓存
             utils.invokeCallback(cb, null, room);
         }
     });
@@ -72,7 +81,7 @@ roomDao.update = function(appcode,roominfo, cb) {
         if (err) {
             utils.invokeCallback(cb, err, null);
         } else {
-            var room = new Room(JSON.parse(romeinfo));
+            var room = new Room(JSON.parse(roominfo));
             room['timeline']=args[1];
             utils.invokeCallback(cb, null, room);
         }
