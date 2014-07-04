@@ -64,6 +64,7 @@ handler.addRoomList = function(msg, session, next) {
                         message: '用户信息缓存错误。'
                     });
                 }else{
+                    console.log("addRoomList update user");
                     self.app.rpc.chat.roomMemberRemote.add(session, appcode,username,msg, self.app.get('serverId'), true, function(err,gameuser){
 
                         next(null, {
@@ -96,8 +97,7 @@ var query = function(start,limit,roominfo,self){
         room = {};
         room['roomname'] = item['roomname'];
         room['maxnum'] = item['maxnum'];
-        room['appcode'] = item['appcode'];
-        room['spaceid'] = item['spaceid'];
+        room['roomid'] = item['spaceid'];
         roominfolist.push(room);
     }
     return roominfolist;
@@ -167,7 +167,7 @@ handler.getMembersByRoom = function(msg,session,next){
         next(null,{
             code:200,
             route:'getMembersByRoom',
-            romm:{
+            room:{
                 roomid:msg.roomid,
                 users:users,
                 appcode:msg.appcode
@@ -175,4 +175,60 @@ handler.getMembersByRoom = function(msg,session,next){
         });
         return;
     })
-}
+};
+handler.getRoomInfoByRoomId = function(msg,session,next){
+    var self = this;
+    roomDao.getRoomByAppcode(msg.appcode,function(err,roominfo) {
+
+        if (err) {
+            console.log(err);
+            next(null, {
+                route: 'getRoomInfoByRoomId',
+                code: 500,
+                error: true,
+                message: '游戏房间信息尚未定义。'
+            });
+            return;
+        } else {
+            var room = {};
+            for (var i=0;i<roominfo.roomlist.length;i++){
+                if(roominfo.roomlist[i]['spaceid']==msg.roomid){
+                    item = roominfo.roomlist[i];
+
+                    room['roomname'] = item['roomname'];
+                    room['maxnum'] = item['maxnum'];
+                    room['roomid'] = item['spaceid'];
+                    break;
+                }
+            }
+            if(room){
+                self.app.rpc.chat.chatRemote.getRoomMembers(session,msg.roomid,msg.appcode,false,function(err,users){
+                    if(err){
+                        next(null,{
+                            code:500,
+                            route:'getRoomInfoByRoomId',
+                            message:'获取房间内玩家列表失败'
+                        });
+                        return;
+                    }
+                    room['users']=users;
+                    next(null,{
+                        code:200,
+                        route:'getRoomInfoByRoomId',
+                        room:room
+                    });
+                    return;
+                });
+            }else{
+                next(null,{
+                    code:500,
+                    route:'getRoomInfoByRoomId',
+                    message:'房间已经不存在'
+                });
+                return;
+            }
+
+        }
+    });
+
+};

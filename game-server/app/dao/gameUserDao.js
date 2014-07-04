@@ -20,12 +20,11 @@ gameUserDao.getUserByAppcode = function(appcode,username, cb) {
     var gameuser=pomelo.app.get('alluser')[username];
     if(gameuser){
         console.log("gameuser info on cache");
-        cb(null, gameuser);
+        utils.invokeCallback(cb, null, gameuser);
         return;
     }
     console.log("gameuser info query db;");
 	var args = [username];
-	
 	pomelo.app.get('dbclient').insert(sqldata.queryuser.replace(/\?/,appcode.replace(/\./g,'_')), args, function(err, res) {
 		if (err) {
 //			logger.error('create bag for roomDao failed! ' + err.stack);
@@ -36,7 +35,8 @@ gameUserDao.getUserByAppcode = function(appcode,username, cb) {
                 var gameUser = new GameUser(result);
                 gameUser.appcode = appcode;
                 pomelo.app.get('alluser')[username]=gameUser;
-                cb(null, gameUser);
+                utils.invokeCallback(cb, err, gameUser);
+
             } else {
                 utils.invokeCallback(cb, err, null);
             }
@@ -104,7 +104,7 @@ gameUserDao.queryGameUsersByUsernames = function(appcode,usernames, cb) {
         }
     }
     if(us.length==0){
-        cb(null,users);
+        utils.invokeCallback(cb, null, users);
         return;
     }
 
@@ -122,7 +122,7 @@ gameUserDao.queryGameUsersByUsernames = function(appcode,usernames, cb) {
                 }
 
             }
-            cb(null,users);
+            utils.invokeCallback(cb, null, users);
 
         }
     });

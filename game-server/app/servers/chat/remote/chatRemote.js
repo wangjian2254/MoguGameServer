@@ -18,12 +18,18 @@ var ChatRemote = function(app) {
  *
  */
 ChatRemote.prototype.add = function(roomid,username,appcode, sid, flag, cb) {
+    var self = this;
+    var channel = this.channelService.getChannel(roomid, flag);
+    if(channel.getMembers().length>=6){
+        cb({msg:"房间已经满员，无法加入。"},null);
+        return;
+    }
     gameUserDao.getUserByAppcode(appcode,username,function(err,gameuser){
         if(err){
-            cb(err,null);
+            cb({msg:"获取用户信息错误。"},null);
             return;
         }
-        var channel = this.channelService.getChannel(roomid, flag);
+
         var param = {
             code:200,
             route: 'onAdd',
@@ -35,9 +41,8 @@ ChatRemote.prototype.add = function(roomid,username,appcode, sid, flag, cb) {
         if( !! channel) {
             channel.add(username, sid);
         }
-        //put user into channel
-        this.app.rpc.chat.roommemberRemote.changeRoomInfo(session, appcode,'in',roomid,username,gameuser, self.app.get('serverId'), true);
-        this.get(roomid, appcode,flag,cb);
+
+        self.get(roomid, appcode,flag,cb);
     });
 };
 
@@ -88,7 +93,7 @@ ChatRemote.prototype.kick = function(roomid,username,appcode, sid, cb) {
 		user: username
 	};
 	channel.pushMessage(param);
-    this.app.rpc.chat.roommemberRemote.changeRoomInfo(session, appcode, 'out',roomid,username,null, self.app.get('serverId'), true);
+
 
     cb();
 };

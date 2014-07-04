@@ -38,15 +38,30 @@ handler.addRoom = function(msg, session, next) {
 	//put user into channel
 	self.app.rpc.chat.chatRemote.add(session, roomid,username,appcode, self.app.get('serverId'), true, function(err,users){
         if(err){
+            var message='获取房间内玩家列表失败';
+            if(typeof err.msg == 'string'){
+                message=err.msg;
+            }
             next(null,{
                 code:500,
                 route:'addRoom',
-                message:'获取房间内玩家列表失败'
+                message:message
             });
             return;
         }
+        //put user into channel
+        var gameuser =null;
+        for(var i=0;i<users.length;i++){
+            if(users[i].username==username){
+                gameuser=users[i];
+                break;
+            }
+        }
+        self.app.rpc.chat.roomMemberRemote.changeRoomInfo(session, appcode,'in',roomid,username,gameuser, self.app.get('serverId'), false,null);
         next(null, {
+            code:200,
             route:'addRoom',
+            roomid:roomid,
 			users:users
 		});
 	});
@@ -55,6 +70,7 @@ handler.addRoom = function(msg, session, next) {
 
 handler.quiteRoom = function(msg,session,next){
     this.app.rpc.chat.chatRemote.kick(session, msg.roomid,session.get('username'),session.get('room'), this.app.get('serverId'), null);
+    this.app.rpc.chat.roomMemberRemote.changeRoomInfo(session, session.get('room'), 'out',  msg.roomid, session.get('username'),null, this.app.get('serverId'), false,null);
     next(null,{
         route:'quiteRoom',
         code:200
@@ -76,5 +92,6 @@ var onUserLeave = function(app, session) {
 		return;
 	}
 	app.rpc.chat.chatRemote.kick(session, session.get('roomid'),session.uid,session.get('room'), app.get('serverId') , null);
+    app.rpc.chat.roomMemberRemote.changeRoomInfo(session, session.get('room'), 'out', session.get('roomid'), session.get('username'),null, app.get('serverId'), false,null);
 };
 

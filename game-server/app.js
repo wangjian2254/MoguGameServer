@@ -64,6 +64,8 @@ app.configure('production|development', 'gate', function(){
 
 // app configure
 app.configure('production|development', function() {
+    var dbclient = require('./app/dao/mysql/mysql').init(app);
+    app.set('dbclient', dbclient);
     // route configures
     app.route('chat', routeUtil.chat);
 
