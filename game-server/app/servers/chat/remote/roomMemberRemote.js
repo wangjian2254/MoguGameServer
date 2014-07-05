@@ -52,6 +52,22 @@ RoomMemberRemote.prototype.changeRoomInfo = function(appcode,changed,roomid,user
     cb();
 }
 
+
+
+RoomMemberRemote.prototype.changeRoomStatus = function(appcode,status,roomid,username,sid,flag,cb){
+    var channel = this.channelService.getChannel(appcode, flag);
+    var param = {
+        code:200,
+        route: 'roomStatusChanged',
+        status:status,
+        roomid:roomid
+    };
+    if(channel){
+        channel.pushMessage(param);
+    }
+    cb();
+}
+
 /**
  * Kick user out chat channel.
  *

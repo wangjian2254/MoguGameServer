@@ -10,6 +10,7 @@ app.set('name', 'mogu-gameserver');
 app.set('alluser',{},true);
 //app.set('roominfo',{},true);
 app.set('gameroom',{},true);
+app.set('gameroomstatus',{},true);
 
 // app configuration
 //app.configure('production|development', 'connector', function(){

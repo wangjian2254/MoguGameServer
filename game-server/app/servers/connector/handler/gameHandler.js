@@ -141,6 +141,10 @@ var onUserLeave = function(app, session) {
     if(!session || !session.uid) {
         return;
     }
+    if(session.get('roomid')) {
+        app.rpc.chat.chatRemote.kick(session, session.get('roomid'), session.uid, session.get('room'), app.get('serverId'), null);
+    }
+
     app.rpc.chat.roomMemberRemote.kick(session,  session.get('room'),session.uid, app.get('serverId'), null);
 };
 

@@ -36,7 +36,7 @@ handler.addRoom = function(msg, session, next) {
         session.on('closed', onUserLeave.bind(null, self.app));
     }
 	//put user into channel
-	self.app.rpc.chat.chatRemote.add(session, roomid,username,appcode, self.app.get('serverId'), true, function(err,users){
+	self.app.rpc.chat.chatRemote.add(session, roomid,username,appcode, self.app.get('serverId'), true, function(err,gameuser){
         if(err){
             var message='获取房间内玩家列表失败';
             if(typeof err.msg == 'string'){
@@ -49,20 +49,12 @@ handler.addRoom = function(msg, session, next) {
             });
             return;
         }
-        //put user into channel
-        var gameuser =null;
-        for(var i=0;i<users.length;i++){
-            if(users[i].username==username){
-                gameuser=users[i];
-                break;
-            }
-        }
+
         self.app.rpc.chat.roomMemberRemote.changeRoomInfo(session, appcode,'in',roomid,username,gameuser, self.app.get('serverId'), false,null);
         next(null, {
             code:200,
             route:'addRoom',
-            roomid:roomid,
-			users:users
+            roomid:roomid
 		});
 	});
 };
@@ -94,4 +86,84 @@ var onUserLeave = function(app, session) {
 	app.rpc.chat.chatRemote.kick(session, session.get('roomid'),session.uid,session.get('room'), app.get('serverId') , null);
     app.rpc.chat.roomMemberRemote.changeRoomInfo(session, session.get('room'), 'out', session.get('roomid'), session.get('username'),null, app.get('serverId'), false,null);
 };
+
+
+
+/**
+ * upload result point
+ *
+ * @param {Object} msg message from client
+ * @param {Object} session
+ * @param  {Function} next next stemp callback
+ *
+ */
+handler.uploadPoint = function(msg, session, next) {
+    this.app.rpc.chat.chatRemote.uploadPoint(session, msg.roomid,session.get('username'),msg.content, this.app.get('serverId'), null);
+    next(null, {
+        code:200,
+        route:'uploadPoint'
+    });
+};
+
+handler.uploadEndPoint = function(msg, session, next) {
+    if(!this.app.get('gameroom')[msg.roomid]){
+        this.app.get('gameroom')[msg.roomid]={};
+    }
+    this.app.get('gameroom')[msg.roomid][msg.username]=msg.content;
+    next(null, {
+        code:200,
+        route:'uploadEndPoint'
+    });
+    return;
+
+
+};
+
+handler.getEndPoint = function(msg, session, next) {
+    var result=null
+    if(this.app.get('gameroom')[msg.roomid]){
+        result =this.app.get('gameroom')[msg.roomid];
+    }
+    next(null, {
+        code:200,
+        route:'getEndPoint',
+        endpoints:result
+    });
+    return;
+
+
+};
+
+/**
+ * clean result point
+ *
+ * @param {Object} msg message from client
+ * @param {Object} session
+ * @param  {Function} next next stemp callback
+ *
+ */
+
+handler.cleanPoint = function(msg, session, next) {
+    this.app.get('gameroom')[msg.roomid]={};
+    next(null, {
+        code:200,
+        route:'cleanPoint'
+    });
+    return;
+
+
+};
+
+
+handler.changeRoomStatus = function(msg, session, next){
+    this.app.get('gameroomstatus')[msg.roomid]=msg.status;
+    this.app.rpc.chat.roomMemberRemote.changeRoomStatus(session, msg.appcode,msg.status,msg.roomid,username, self.app.get('serverId'), false,null);
+
+    next(null, {
+        code:200,
+        route:'changeRoomStatus'
+    });
+    return;
+}
+
 

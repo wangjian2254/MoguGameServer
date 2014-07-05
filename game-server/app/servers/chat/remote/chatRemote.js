@@ -20,13 +20,19 @@ var ChatRemote = function(app) {
 ChatRemote.prototype.add = function(roomid,username,appcode, sid, flag, cb) {
     var self = this;
     var channel = this.channelService.getChannel(roomid, flag);
-    if(channel.getMembers().length>=6){
+    var users = channel.getMembers();
+    if(users.indexOf(username)>=0){
+        cb(null,null);
+        return;
+    }
+    if(users.length>=6){
         cb({msg:"房间已经满员，无法加入。"},null);
         return;
     }
+
     gameUserDao.getUserByAppcode(appcode,username,function(err,gameuser){
         if(err){
-            cb({msg:"获取用户信息错误。"},null);
+            cb({msg:"获取用户信息错误。"});
             return;
         }
 
@@ -42,7 +48,7 @@ ChatRemote.prototype.add = function(roomid,username,appcode, sid, flag, cb) {
             channel.add(username, sid);
         }
 
-        self.get(roomid, appcode,flag,cb);
+        cb(null,gameuser);
     });
 };
 
@@ -99,26 +105,15 @@ ChatRemote.prototype.kick = function(roomid,username,appcode, sid, cb) {
 };
 
 
-ChatRemote.prototype.uploadEndPoint = function(roomid,username,appcode,content, cb) {
-    if(!this.app.get('gameroom')[roomid]){
-        this.app.get('gameroom')[roomid]={};
-    }
-    this.app.get('gameroom')[roomid][username]=content;
+ChatRemote.prototype.uploadPoint = function(roomid,username,content,sid,cb){
+    var channelService = this.app.get('channelService');
+    var param = {
+        msg: content,
+        from: username
+    };
+    var channel = channelService.getChannel(roomid, false);
+
+    channel.pushMessage('onChat', param);
     cb();
-};
+}
 
-
-
-ChatRemote.prototype.getEndPoint = function(roomid,username,appcode, cb) {
-    if(!this.app.get('gameroom')[roomid]){
-        cb({});
-    }else{
-        cb(this.app.get('gameroom')[roomid]);
-    }
-
-};
-
-ChatRemote.prototype.cleanPoint = function(roomid,username,appcode, cb) {
-    this.app.get('gameroom')[roomid]={};
-    cb();
-};
