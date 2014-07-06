@@ -71,6 +71,7 @@ handler.addRoomList = function(msg, session, next) {
                             route:'queryRoomList',
                             code:200,
                             roomlist:query(0,18,roominfo,self),
+                            roomcount:roominfo.roomlist.length,
                             start:0
                         });
                     });
@@ -125,6 +126,7 @@ handler.queryRoomList = function(msg,session,next){
         route:'queryRoomList',
         code:200,
         roomlist:query(start,limit,roominfo,self),
+        roomcount:roominfo.roomlist.length,
         start:start
     });
     return;
@@ -141,11 +143,16 @@ var onUserLeave = function(app, session) {
     if(!session || !session.uid) {
         return;
     }
+
     if(session.get('roomid')) {
         app.rpc.chat.chatRemote.kick(session, session.get('roomid'), session.uid, session.get('room'), app.get('serverId'), null);
+        if(app.get('gameroom')[session.get('roomid')]&& typeof  app.get('gameroom')[session.get('roomid')][session.uid] == "undefined"){
+            delete app.get('gameroom')[session.get('roomid')][session.uid]
+        }
     }
 
     app.rpc.chat.roomMemberRemote.kick(session,  session.get('room'),session.uid, app.get('serverId'), null);
+
 };
 
 
@@ -159,6 +166,7 @@ handler.quiteRoomList = function(msg,session,next){
 
 
 handler.getMembersByRoom = function(msg,session,next){
+    var status = this.app.get('gameroomstatus')[msg.roomid];
     this.app.rpc.chat.chatRemote.getRoomMembers(session,msg.roomid,msg.appcode,false,function(err,users){
         if(err){
             next(null,{
@@ -168,10 +176,14 @@ handler.getMembersByRoom = function(msg,session,next){
             });
             return;
         }
+        if(!status){
+            status='stop';
+        }
         next(null,{
             code:200,
             route:'getMembersByRoom',
             room:{
+                status:status,
                 roomid:msg.roomid,
                 users:users,
                 appcode:msg.appcode

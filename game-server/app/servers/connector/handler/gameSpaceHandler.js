@@ -17,6 +17,14 @@ var handler = Handler.prototype;
  * @return {Void}
  */
 handler.addRoom = function(msg, session, next) {
+    if(this.app.get('gameroomstatus')[msg.roomid]=="playing"){
+        next(null,{
+            code:500,
+            route:'addRoom',
+            message:"房间正在游戏中，无法进入。"
+        });
+        return;
+    }
 	var self = this;
 	var roomid = msg.roomid;
     var appcode = msg.appcode;
@@ -106,30 +114,60 @@ handler.uploadPoint = function(msg, session, next) {
 };
 
 handler.uploadEndPoint = function(msg, session, next) {
-    if(!this.app.get('gameroom')[msg.roomid]){
-        this.app.get('gameroom')[msg.roomid]={};
+    var gameroom = this.app.get('gameroom');
+    if(typeof  gameroom[msg.roomid] == "undefined"){
+        gameroom[msg.roomid]={};
     }
-    this.app.get('gameroom')[msg.roomid][msg.username]=msg.content;
-    next(null, {
-        code:200,
-        route:'uploadEndPoint'
-    });
-    return;
-
-
+    gameroom[msg.roomid][msg.username]=msg.content;
+    this.getEndPoint(msg,session,next);
 };
 
 handler.getEndPoint = function(msg, session, next) {
-    var result=null
-    if(this.app.get('gameroom')[msg.roomid]){
-        result =this.app.get('gameroom')[msg.roomid];
+    // 如果有人退出了游戏，则新的房主，访问此接口，确保，局分处理完成
+    var gameroom = this.app.get('gameroom');
+    if(typeof  gameroom[msg.roomid] == "undefined"){
+
+        next(null, {
+            code:200,
+            route:'replaygame'// 可以开始新游戏了
+        });
+        return;
     }
-    next(null, {
-        code:200,
-        route:'getEndPoint',
-        endpoints:result
-    });
-    return;
+    var f=true;
+    for(var p in gameroom[msg.roomid]){
+        if(gameroom[msg.roomid][p]===null){
+            f=false;
+            break;
+        }
+    }
+    if(f){
+        // 所有人局分都上传完了，就是一局结束了
+        this.app.get('gameroomstatus')[msg.roomid]="stop";
+        this.app.rpc.chat.roomMemberRemote.changeRoomStatus(session, msg.appcode,"stop",msg.roomid,msg.username, self.app.get('serverId'), false,null);
+        //
+        this.app.rpc.chat.chatRemote.pushEndPoint(session, msg.roomid,session.get('username'),gameroom[msg.roomid], this.app.get('serverId'), function(users){
+            if(!users){
+                next(null, {
+                    code:200,
+                    route:'replaygame'// 可以开始新游戏了
+                });
+            }else{
+                //todo: 返回users 所有用的新状态
+            }
+
+            return;
+        });
+        // todo: 此处是否应该 上传局分的处理结果 ？
+        // 1.在chatRemote 中 处理局积分，并将结果上传到gae，最后返回，每个人的游戏状态。
+    }else{
+        next(null, {
+            code:200,
+            route:'getEndPoint'
+        });
+        return;
+    }
+
+
 
 
 };
@@ -145,6 +183,9 @@ handler.getEndPoint = function(msg, session, next) {
 
 handler.cleanPoint = function(msg, session, next) {
     this.app.get('gameroom')[msg.roomid]={};
+    for(var i=0;i<msg.members;i++){
+        this.app.get('gameroom')[msg.roomid][msg.members[i]]=null;
+    }
     next(null, {
         code:200,
         route:'cleanPoint'

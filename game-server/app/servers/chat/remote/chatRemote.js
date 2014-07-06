@@ -73,6 +73,7 @@ ChatRemote.prototype.get = function(name,appcode, flag,cb) {
 };
 
 ChatRemote.prototype.getRoomMembers = function(roomid,appcode,flag,cb){
+
     this.get(roomid,appcode,flag,cb);
 }
 
@@ -116,4 +117,20 @@ ChatRemote.prototype.uploadPoint = function(roomid,username,content,sid,cb){
     channel.pushMessage('onChat', param);
     cb();
 }
+
+
+ChatRemote.prototype.pushEndPoint = function(roomid,username,endpoint,sid,cb){
+    var channelService = this.app.get('channelService');
+    var param = {
+        roomid: roomid,
+        endpoints:endpoint
+    };
+    var channel = channelService.getChannel(roomid, false);
+    if(channel){
+        channel.pushMessage('onEndPoint', param);
+    }
+    //todo: 发送url 链接 推送 结果到gae上。回调函数中通知 用户的游戏状态
+    cb();
+}
+
 

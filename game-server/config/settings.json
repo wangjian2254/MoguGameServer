@@ -1,3 +1,4 @@
 {
-    "moguurl":"http://gamerank.mmggoo.com/RoomJSONFile"
+    "moguurl":"http://gamerank.mmggoo.com/RoomJSONFile",
+    "moguuploadpointurl":"http://gamerank.mmggoo.com/PointOnceUpdate"
 }
