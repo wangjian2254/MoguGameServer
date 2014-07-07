@@ -21,45 +21,43 @@ SyncRoomInfo.prototype.start = function(cb){
     //检测信息是否是最新的
     var self = this;
     var timerfun = function(){
-
-        var s = roominfofile.getRoomJsonStat();
-
-        if(!s){
-            roominfofile.downloadRoomJsonInfo(function(data,stat){
-                self.app.set('roominfo',{},true);
-                self.app.roominfo=data;
-                self.app.roominfo['timeline']= stat.mtime;
-                console.log('roominfo inited');
-                console.log(stat.mtime);
-            });
-            console.log('download info');
-        }else{
-            console.log(s.mtime);
-            if(!self.app.roominfo||self.app.roominfo.timeline< s.mtime){
-                self.app.set('roominfo',{},true);
-                self.app.roominfo = roominfofile.getRoomJsonData();
-                self.app.roominfo['timeline']= s.mtime;
-                console.log('roominfo changed');
+        var cache_data=self.app.get('gameroom');
+        for(var p in cache_data){
+            if(!cache_data[p]['cache_time']){
+                cache_data[p]['cache_time']=1;
+            }else if(cache_data[p]['cache_time']<3){
+                cache_data[p]['cache_time']+=1;
+            }else{
+                delete cache_data[p];
+                console.log(p);
             }
         }
-//        console.log(self.app.get('alluser'));
+        cache_data = self.app.get('alluser');
+        for(var p in cache_data){
+            if(!cache_data[p]['cache_time']){
+                cache_data[p]['cache_time']=1;
+            }else if(cache_data[p]['cache_time']<3){
+                cache_data[p]['cache_time']+=1;
+            }else{
+                delete cache_data[p];
+                console.log(p);
+            }
+        }
+
 
     };
-    console.log('start');
-    timerfun();
+
     this.timerId = setInterval(timerfun,this.interval);
 
     process.nextTick(cb);
 }
 
 SyncRoomInfo.prototype.afterStart = function(cb){
-    console.log("after");
 
     process.nextTick(cb);
 }
 
 SyncRoomInfo.prototype.stop = function(force, cb){
-    console.log("stop");
     clearInterval(this.timerId);
     process.nextTick(cb);
 }

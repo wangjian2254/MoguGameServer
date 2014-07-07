@@ -44,7 +44,7 @@ handler.addRoom = function(msg, session, next) {
         session.on('closed', onUserLeave.bind(null, self.app));
     }
 	//put user into channel
-	self.app.rpc.chat.chatRemote.add(session, roomid,username,appcode, self.app.get('serverId'), true, function(err,gameuser){
+	self.app.rpc.chat.chatRemote.add(session, roomid,username,appcode, self.app.get('serverId'), true, function(err,gameuser,usernum){
         if(err){
             var message='获取房间内玩家列表失败';
             if(typeof err.msg == 'string'){
@@ -57,7 +57,10 @@ handler.addRoom = function(msg, session, next) {
             });
             return;
         }
-
+        if(usernum>=6){
+            // 未来 可以通过 roomid　的第一个"_"前的数字 来决定房间最大人数。目前暂定为6人。
+            self.app.get('gameroomstatus')[msg.roomid]='full';
+        }
         self.app.rpc.chat.roomMemberRemote.changeRoomInfo(session, appcode,'in',roomid,username,gameuser, self.app.get('serverId'), false,null);
         next(null, {
             code:200,
@@ -69,6 +72,12 @@ handler.addRoom = function(msg, session, next) {
 
 
 handler.quiteRoom = function(msg,session,next){
+    if(session.get('roomid')&&app.get('gameroom')[session.get('roomid')]&& typeof  app.get('gameroom')[session.get('roomid')][session.uid]){
+        delete app.get('gameroom')[session.get('roomid')][session.uid]
+        if(app.get('gameroomstatus')[session.get('roomid')]=='full'){
+            app.get('gameroomstatus')[session.get('roomid')]='stop';
+        }
+    }
     this.app.rpc.chat.chatRemote.kick(session, msg.roomid,session.get('username'),session.get('room'), this.app.get('serverId'), null);
     this.app.rpc.chat.roomMemberRemote.changeRoomInfo(session, session.get('room'), 'out',  msg.roomid, session.get('username'),null, this.app.get('serverId'), false,null);
     next(null,{
@@ -145,20 +154,13 @@ handler.getEndPoint = function(msg, session, next) {
         this.app.get('gameroomstatus')[msg.roomid]="stop";
         this.app.rpc.chat.roomMemberRemote.changeRoomStatus(session, msg.appcode,"stop",msg.roomid,msg.username, self.app.get('serverId'), false,null);
         //
-        this.app.rpc.chat.chatRemote.pushEndPoint(session, msg.roomid,session.get('username'),gameroom[msg.roomid], this.app.get('serverId'), function(users){
-            if(!users){
-                next(null, {
-                    code:200,
-                    route:'replaygame'// 可以开始新游戏了
-                });
-            }else{
-                //todo: 返回users 所有用的新状态
-            }
-
-            return;
+        this.app.rpc.chat.chatRemote.pushEndPoint(session, msg.roomid, msg.appcode,session.get('username'),gameroom[msg.roomid], this.app.get('serverId'), null);
+        next(null, {
+            code:200,
+            result:gameroom[msg.roomid],
+            route:'getEndPoint'
         });
-        // todo: 此处是否应该 上传局分的处理结果 ？
-        // 1.在chatRemote 中 处理局积分，并将结果上传到gae，最后返回，每个人的游戏状态。
+        return;
     }else{
         next(null, {
             code:200,

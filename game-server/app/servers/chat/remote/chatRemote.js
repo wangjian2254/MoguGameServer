@@ -1,4 +1,6 @@
 var gameUserDao = require('../../../dao/gameUserDao');
+var settings = require('../../../../config/settings.json');
+var request = require('request');
 module.exports = function(app) {
 	return new ChatRemote(app);
 };
@@ -26,6 +28,7 @@ ChatRemote.prototype.add = function(roomid,username,appcode, sid, flag, cb) {
         return;
     }
     if(users.length>=6){
+        // 未来 可以通过 roomid　的第一个"_"前的数字 来决定房间最大人数。目前暂定为6人。
         cb({msg:"房间已经满员，无法加入。"},null);
         return;
     }
@@ -43,12 +46,13 @@ ChatRemote.prototype.add = function(roomid,username,appcode, sid, flag, cb) {
             roomid:roomid,
             userinfo: gameuser
         };
-        channel.pushMessage(param);
+
         if( !! channel) {
+            channel.pushMessage(param);
             channel.add(username, sid);
         }
 
-        cb(null,gameuser);
+        cb(null,gameuser,channel.getMembers().length);
     });
 };
 
@@ -119,18 +123,42 @@ ChatRemote.prototype.uploadPoint = function(roomid,username,content,sid,cb){
 }
 
 
-ChatRemote.prototype.pushEndPoint = function(roomid,username,endpoint,sid,cb){
+ChatRemote.prototype.pushEndPoint = function(roomid,appcode,username,endpoint,sid,cb){
     var channelService = this.app.get('channelService');
-    var param = {
-        roomid: roomid,
-        endpoints:endpoint
-    };
     var channel = channelService.getChannel(roomid, false);
-    if(channel){
-        channel.pushMessage('onEndPoint', param);
+    var postparam={game:appcode};
+    var i=0;
+    for(var p in endpoint){
+        postparam['username'+i]=p;
+        postparam['point'+i]=endpoint[p];
+        i++;
     }
-    //todo: 发送url 链接 推送 结果到gae上。回调函数中通知 用户的游戏状态
+    postparam['num']=i;
+    var users=[];
+    request.post(settings.moguuploadpointurl, {form:postparam},function(error,response,body){
+        if(!error && response.statusCode == 200){
+//                console.log(fs.realpathSync('.'));
+            var result = JSON.parse(body);
+            if(result.success){
+                for(var i=0;i<result.result.length;i++){
+                    gameUserDao.updateGameUserPoint(appcode,result.result[i],function(err,u){
+                        if(!err){
+                            users.push(u);
+                        }
+                    });
+                }
+            }
+        }
+        if(channel){
+            var param = {
+                roomid: roomid,
+                users:users,
+                endpoints:endpoint
+            };
+            channel.pushMessage('onEndPoint', param);
+        }
+    });
     cb();
-}
+};
 
 

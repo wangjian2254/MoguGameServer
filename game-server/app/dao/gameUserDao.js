@@ -128,3 +128,22 @@ gameUserDao.queryGameUsersByUsernames = function(appcode,usernames, cb) {
     });
 
 };
+
+gameUserDao.updateGameUserPoint = function(appcode,gameuser, cb) {
+    //updateuserpoint
+    var args = [appcode,gameuser.p,gameuser.r, new Date().getTime(),gameuser.u];
+    pomelo.app.get('dbclient').insert(sqldata.updateuserpoint.replace(/\?/,appcode.replace(/\./g,'_')), args, function(err, res) {
+        if (err) {
+            utils.invokeCallback(cb, err, null);
+        } else {
+            var gu = pomelo.app.get('alluser')[gameuser.u];
+            if(!gu){
+                gu = {username:gameuser.u};
+            }
+            gu.point = gameuser.p;
+            gu.rank = gameuser.r;
+            gu.timeline = args[3];
+            utils.invokeCallback(cb, null, gu);
+        }
+    });
+}

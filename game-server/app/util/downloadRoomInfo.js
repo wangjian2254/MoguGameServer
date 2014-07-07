@@ -3,7 +3,7 @@
  */
 var fs = require('fs');
 var request = require('request');
-var settings = require('../../config/settings.json')
+var settings = require('../../config/settings.json');
 var path = fs.realpathSync('.')
 //console.log(path);
 var filepath = path+'/config/roominfo.json';
