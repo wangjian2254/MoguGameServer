@@ -35,14 +35,15 @@ handler.addRoom = function(msg, session, next) {
     if( ! sessionService.getByUid(username)) {
         session.bind(username);
         session.set('username', username);
-        session.set('roomid', roomid);
-        session.pushAll(function(err) {
-            if(err) {
-                console.error('set room for session service failed! error is : %j', err.stack);
-            }
-        });
+
         session.on('closed', onUserLeave.bind(null, self.app));
     }
+    session.set('roomid', roomid);
+    session.pushAll(function(err) {
+        if(err) {
+            console.error('set room for session service failed! error is : %j', err.stack);
+        }
+    });
 	//put user into channel
 	self.app.rpc.chat.chatRemote.add(session, roomid,username,appcode, self.app.get('serverId'), true, function(err,gameuser,usernum){
         if(err){
@@ -61,7 +62,7 @@ handler.addRoom = function(msg, session, next) {
             // 未来 可以通过 roomid　的第一个"_"前的数字 来决定房间最大人数。目前暂定为6人。
             self.app.get('gameroomstatus')[msg.roomid]='full';
         }
-        self.app.rpc.chat.roomMemberRemote.changeRoomInfo(session, appcode,'in',roomid,username,gameuser, self.app.get('serverId'), false,null);
+        self.app.rpc.chat.roomMemberRemote.changeRoomInfo(session, appcode,'in',roomid,username,gameuser, self.app.get('serverId'), true,null);
         next(null, {
             code:200,
             route:'addRoom',
@@ -72,14 +73,14 @@ handler.addRoom = function(msg, session, next) {
 
 
 handler.quiteRoom = function(msg,session,next){
-    if(session.get('roomid')&&app.get('gameroom')[session.get('roomid')]&& typeof  app.get('gameroom')[session.get('roomid')][session.uid]){
-        delete app.get('gameroom')[session.get('roomid')][session.uid]
-        if(app.get('gameroomstatus')[session.get('roomid')]=='full'){
-            app.get('gameroomstatus')[session.get('roomid')]='stop';
+    if(session.get('roomid')&&this.app.get('gameroom')[session.get('roomid')]&& typeof  this.app.get('gameroom')[session.get('roomid')][session.uid]){
+        delete this.app.get('gameroom')[session.get('roomid')][session.uid]
+        if(this.app.get('gameroomstatus')[session.get('roomid')]=='full'){
+            this.app.get('gameroomstatus')[session.get('roomid')]='stop';
         }
     }
-    this.app.rpc.chat.chatRemote.kick(session, msg.roomid,session.get('username'),session.get('room'), this.app.get('serverId'), null);
-    this.app.rpc.chat.roomMemberRemote.changeRoomInfo(session, session.get('room'), 'out',  msg.roomid, session.get('username'),null, this.app.get('serverId'), false,null);
+    this.app.rpc.chat.chatRemote.kick(session, msg.roomid,session.uid,msg.appcode, this.app.get('serverId'), null);
+    this.app.rpc.chat.roomMemberRemote.changeRoomInfo(session, msg.appcode, 'out',  msg.roomid, session.uid,null, this.app.get('serverId'), false,null);
     next(null,{
         route:'quiteRoom',
         code:200
@@ -135,12 +136,16 @@ handler.getEndPoint = function(msg, session, next) {
     // 如果有人退出了游戏，则新的房主，访问此接口，确保，局分处理完成
     var gameroom = this.app.get('gameroom');
     if(typeof  gameroom[msg.roomid] == "undefined"){
-
+        this.app.get('gameroomstatus')[msg.roomid]="stop";
+        this.app.rpc.chat.roomMemberRemote.changeRoomStatus(session, msg.appcode,"stop",msg.roomid, this.app.get('serverId'), false,null);
         next(null, {
             code:200,
             route:'replaygame'// 可以开始新游戏了
         });
         return;
+    }
+    if(gameroom[msg.roomid][msg.username]==null){
+        delete gameroom[msg.roomid][msg.username];
     }
     var f=true;
     for(var p in gameroom[msg.roomid]){
@@ -152,7 +157,7 @@ handler.getEndPoint = function(msg, session, next) {
     if(f){
         // 所有人局分都上传完了，就是一局结束了
         this.app.get('gameroomstatus')[msg.roomid]="stop";
-        this.app.rpc.chat.roomMemberRemote.changeRoomStatus(session, msg.appcode,"stop",msg.roomid,msg.username, self.app.get('serverId'), false,null);
+        this.app.rpc.chat.roomMemberRemote.changeRoomStatus(session, msg.appcode,"stop",msg.roomid, this.app.get('serverId'), false,null);
         //
         this.app.rpc.chat.chatRemote.pushEndPoint(session, msg.roomid, msg.appcode,session.get('username'),gameroom[msg.roomid], this.app.get('serverId'), null);
         next(null, {
@@ -200,7 +205,7 @@ handler.cleanPoint = function(msg, session, next) {
 
 handler.changeRoomStatus = function(msg, session, next){
     this.app.get('gameroomstatus')[msg.roomid]=msg.status;
-    this.app.rpc.chat.roomMemberRemote.changeRoomStatus(session, msg.appcode,msg.status,msg.roomid,username, self.app.get('serverId'), false,null);
+    this.app.rpc.chat.roomMemberRemote.changeRoomStatus(session, msg.appcode,msg.status,msg.roomid, this.app.get('serverId'), false,null);
 
     next(null, {
         code:200,

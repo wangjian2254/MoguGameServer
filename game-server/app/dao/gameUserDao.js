@@ -78,7 +78,8 @@ gameUserDao.updateGameUser = function(appcode,gameuser, cb) {
             }else if((gameuser.timeline&&gameuser.timeline==user.timeline)||(!gameuser.timeline&&user.nickname==gameuser.nickname&&user.point==gameuser.point&&user.rank==gameuser.rank)){
                 utils.invokeCallback(cb, null, gameuser);
             }else{
-                var args = [appcode,gameuser.nickname,gameuser.point,gameuser.rank, new Date().getTime(),gameuser.username];
+                var args = [gameuser.nickname,gameuser.point,gameuser.rank, new Date().getTime(),gameuser.username];
+                console.log(args);
                 pomelo.app.get('dbclient').insert(sqldata.updateuser.replace(/\?/,appcode.replace(/\./g,'_')), args, function(err, res) {
                     if (err) {
                         utils.invokeCallback(cb, err, null);

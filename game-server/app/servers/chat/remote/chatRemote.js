@@ -113,10 +113,11 @@ ChatRemote.prototype.kick = function(roomid,username,appcode, sid, cb) {
 ChatRemote.prototype.uploadPoint = function(roomid,username,content,sid,cb){
     var channelService = this.app.get('channelService');
     var param = {
+        code:200,
         msg: content,
         from: username
     };
-    var channel = channelService.getChannel(roomid, false);
+    var channel = channelService.getChannel(roomid, true);
 
     channel.pushMessage('onChat', param);
     cb();
@@ -151,6 +152,7 @@ ChatRemote.prototype.pushEndPoint = function(roomid,appcode,username,endpoint,si
         }
         if(channel){
             var param = {
+                code:200,
                 roomid: roomid,
                 users:users,
                 endpoints:endpoint

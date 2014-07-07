@@ -32,14 +32,15 @@ handler.addRoomList = function(msg, session, next) {
     if( ! sessionService.getByUid(username)) {
         session.bind(username);
         session.set('username', username);
-        session.set('room', appcode);
-        session.pushAll(function(err) {
-            if(err) {
-                console.error('set room for session service failed! error is : %j', err.stack);
-            }
-        });
+
         session.on('closed', onUserLeave.bind(null, self.app));
     }
+    session.set('room', appcode);
+    session.pushAll(function(err) {
+        if(err) {
+            console.error('set room for session service failed! error is : %j', err.stack);
+        }
+    });
     roomDao.getRoomByAppcode(msg.appcode,function(err,roominfo){
 
         if(err){
@@ -67,7 +68,7 @@ handler.addRoomList = function(msg, session, next) {
                         next(null, {
                             route:'queryRoomList',
                             code:200,
-                            roomlist:query(0,18,roominfo),
+                            roomlist:query(0,3,roominfo),
                             roomcount:roominfo.roomlist.length,
                             start:0
                         });
@@ -193,9 +194,10 @@ var onUserLeave = function(app, session) {
 
 
 handler.quiteRoomList = function(msg,session,next){
-    this.app.rpc.chat.roomMemberRemote.kick(session, session.get('room'),session.uid, this.app.get('serverId'), null);
+    this.app.rpc.chat.roomMemberRemote.kick(session, msg.appcode,session.uid, this.app.get('serverId'), null);
     next(null,{
-        code:200
+        code:200,
+        route:'quiteRoomList'
     });
     return;
 }

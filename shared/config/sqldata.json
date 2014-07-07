@@ -5,8 +5,8 @@
     "queryuser":"select * from ? where username=?",
     "queryuserbynames":"select * from ? where username in (",
     "createuser":"insert into ?  (username,nickname,point,rank,timeline) values (?,?,?,?,?)",
-    "updateuser":"update from ? set nickname = ?,point =?,rank = ?,timeline =? where username=?",
-    "updateuserpoint":"update from ? set point =?,rank = ?,timeline =? where username=?",
+    "updateuser":"update  ? set nickname = ?,point =?,rank = ?, timeline =? where username=?",
+    "updateuserpoint":"update  ? set point =?,rank = ?,timeline =? where username=?",
     "queryroomlist":"select * from gameroom where appcode=?",
     "createroomlist":"insert into gameroom (appcode,roominfo,timeline) values (?,?,?)",
     "updateroomlist":"update gameroom set roominfo = ?, timeline= ? where appcode=?"

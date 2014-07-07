@@ -54,7 +54,7 @@ RoomMemberRemote.prototype.changeRoomInfo = function(appcode,changed,roomid,user
 
 
 
-RoomMemberRemote.prototype.changeRoomStatus = function(appcode,status,roomid,username,sid,flag,cb){
+RoomMemberRemote.prototype.changeRoomStatus = function(appcode,status,roomid,sid,flag,cb){
     var channel = this.channelService.getChannel(appcode, flag);
     var param = {
         code:200,
