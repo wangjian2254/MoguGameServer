@@ -68,7 +68,7 @@ handler.addRoomList = function(msg, session, next) {
                         next(null, {
                             route:'queryRoomList',
                             code:200,
-                            roomlist:query(0,3,roominfo),
+                            roomlist:query(0,18,roominfo),
                             roomcount:roominfo.roomlist.length,
                             start:0
                         });
