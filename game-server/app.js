@@ -25,7 +25,7 @@ app.set('gameroomstatus',{},true);
 
 var syncRommInfo = require('./app/components/syncRoomInfo');
 app.loadConfig('mysql', app.getBase() + '/../shared/config/mysql.json');
-app.load(syncRommInfo,{interval:1000*60*10});
+
 app.configure('production|development', 'connector', function(){
     var dbclient = require('./app/dao/mysql/mysql').init(app);
     app.set('dbclient', dbclient);
@@ -39,7 +39,7 @@ app.configure('production|development', 'connector', function(){
             heartbeatTimeout : 60,
             heartbeatInterval : 25
         });
-
+    app.load(syncRommInfo,{interval:1000*60*10});
 });
 //app.configure('production|development', 'gate', function(){
 //    app.set('connectorConfig',
@@ -72,6 +72,7 @@ app.configure('production|development', function() {
 
     // filter configures
     app.filter(pomelo.timeout());
+    app.load(syncRommInfo,{interval:1000*60*10});
 });
 
 // start app
