@@ -61,8 +61,8 @@ app.configure('production|development', 'gate', function(){
             heartbeatInterval : 25
         });
 });
-//
-//// app configure
+
+// app configure
 //app.configure('production|development', function() {
 //    var dbclient = require('./app/dao/mysql/mysql').init(app);
 //    app.set('dbclient', dbclient);
