@@ -1,9 +1,13 @@
+var settings = require('../../../../config/settings.json');
+var request = require('request');
+var gameUserDao = require('../../../dao/gameUserDao');
 module.exports = function(app) {
 	return new Handler(app);
 };
 
 var Handler = function(app) {
 		this.app = app;
+    this.channelService = app.get('channelService');
 };
 
 var handler = Handler.prototype;
@@ -29,82 +33,139 @@ handler.addRoom = function(msg, session, next) {
 	var roomid = msg.roomid;
     var appcode = msg.appcode;
 	var username = msg.username
-	var sessionService = self.app.get('sessionService');
 
-    //第一次登陆
-    if( ! sessionService.getByUid(username)) {
-        session.bind(username);
-        session.set('username', username);
-
-        session.on('closed', onUserLeave.bind(null, self.app));
-    }
-    session.set('roomid', roomid);
-    session.pushAll(function(err) {
-        if(err) {
-            console.error('set room for session service failed! error is : %j', err.stack);
-        }
-    });
-	//put user into channel
-	self.app.rpc.chat.chatRemote.add(session, roomid,username,appcode, self.app.get('serverId'), true, function(err,gameuser,usernum){
-        if(err){
-            var message='获取房间内玩家列表失败';
-            if(typeof err.msg == 'string'){
-                message=err.msg;
-            }
-            next(null,{
-                code:500,
-                route:'addRoom',
-                message:message
-            });
-            return;
-        }
-        if(usernum>=6){
-            // 未来 可以通过 roomid　的第一个"_"前的数字 来决定房间最大人数。目前暂定为6人。
-            self.app.get('gameroomstatus')[msg.roomid]='full';
-        }
-        self.app.rpc.chat.roomMemberRemote.changeRoomInfo(session, appcode,'in',roomid,username,gameuser, self.app.get('serverId'), true,null);
+    var channel = this.channelService.getChannel(roomid, true);
+    var users = channel.getMembers();
+    if(users.indexOf(username)>=0){
         next(null, {
             code:200,
             route:'addRoom',
             roomid:roomid
-		});
-	});
+        });
+        return;
+    }
+    if(users.length>=6){
+        // 未来 可以通过 roomid　的第一个"_"前的数字 来决定房间最大人数。目前暂定为6人。
+//        cb({msg:"房间已经满员，无法加入。"},null);
+        next(null, {
+            code:500,
+            message:"房间已经满员，无法加入。",
+            route:'addRoom'
+        });
+        return;
+    }
+
+    gameUserDao.getUserByAppcode(appcode,username,function(err,gameuser){
+        if(err){
+//            cb({msg:"获取用户信息错误。"});
+            next(null, {
+                code:500,
+                message:"获取用户信息错误。",
+                route:'addRoom'
+            });
+            return;
+        }
+
+        var param = {
+            code:200,
+            route: 'onAdd',
+            user: username,
+            roomid:roomid,
+            userinfo: gameuser
+        };
+
+        channel.pushMessage(param);
+        channel.add(username,  self.app.get('serverId'));
+        var channel2 = self.channelService.getChannel(appcode, false);
+        if(!!channel2){
+            var param2 = {
+                code:200,
+                route: 'memberChanged',
+                changed:'in',
+                user: username,
+                roomid:roomid,
+                userinfo: gameuser
+            };
+            channel2.pushMessage(param2);
+        }
+        next(null, {
+            code:200,
+            route:'addRoom',
+            roomid:roomid
+        });
+//        cb(null,gameuser,channel.getMembers().length);
+    });
+
+	//put user into channel
+//	self.app.rpc.chat.chatRemote.add(session, roomid,username,appcode, self.app.get('serverId'), true, function(err,gameuser,usernum){
+//        if(err){
+//            var message='获取房间内玩家列表失败';
+//            if(typeof err.msg == 'string'){
+//                message=err.msg;
+//            }
+//            next(null,{
+//                code:500,
+//                route:'addRoom',
+//                message:message
+//            });
+//            return;
+//        }
+//        if(usernum>=6){
+//            // 未来 可以通过 roomid　的第一个"_"前的数字 来决定房间最大人数。目前暂定为6人。
+//            self.app.get('gameroomstatus')[msg.roomid]='full';
+//        }
+//
+//
+//        self.app.rpc.chat.roomMemberRemote.changeRoomInfo(session, appcode,'in',roomid,username,gameuser, self.app.get('serverId'), true,null);
+//        next(null, {
+//            code:200,
+//            route:'addRoom',
+//            roomid:roomid
+//		});
+//	});
 };
 
 
 handler.quiteRoom = function(msg,session,next){
-    if(session.get('roomid')&&this.app.get('gameroom')[session.get('roomid')]&& typeof  this.app.get('gameroom')[session.get('roomid')][session.uid]){
-        delete this.app.get('gameroom')[session.get('roomid')][session.uid]
-        if(this.app.get('gameroomstatus')[session.get('roomid')]=='full'){
-            this.app.get('gameroomstatus')[session.get('roomid')]='stop';
+    if(msg.roomid&&this.app.get('gameroom')[msg.roomid]&& typeof  this.app.get('gameroom')[msg.roomid][session.uid]){
+        delete this.app.get('gameroom')[msg.roomid][session.uid]
+        if(this.app.get('gameroomstatus')[msg.roomid]=='full'){
+            this.app.get('gameroomstatus')[msg.roomid]='stop';
         }
     }
-    this.app.rpc.chat.chatRemote.kick(session, msg.roomid,session.uid,msg.appcode, this.app.get('serverId'), null);
-    this.app.rpc.chat.roomMemberRemote.changeRoomInfo(session, msg.appcode, 'out',  msg.roomid, session.uid,null, this.app.get('serverId'), false,null);
+    var channel = this.channelService.getChannel(msg.roomid, false);
+    // leave channel
+    if( !! channel) {
+        channel.leave(username, this.app.get('serverId'));
+        var param = {
+            code:200,
+            route: 'onLeave',
+            roomid:msg.roomid,
+            user: session.uid
+        };
+        channel.pushMessage(param);
+    }
+    var channel2 = this.channelService.getChannel(msg.appcode, false);
+    if(!!channel2){
+        var param2 = {
+            code:200,
+            route: 'memberChanged',
+            changed:'out',
+            user: session.uid,
+            roomid:msg.roomid
+        };
+        channel2.pushMessage(param2);
+    }
+
+
+//    this.app.rpc.chat.chatRemote.kick(session, msg.roomid,session.uid,msg.appcode, this.app.get('serverId'), null);
+//    this.app.rpc.chat.roomMemberRemote.changeRoomInfo(session, msg.appcode, 'out',  msg.roomid, session.uid,null, this.app.get('serverId'), false,null);
     next(null,{
         route:'quiteRoom',
         code:200
     });
     return;
 }
-
-
-
-/**
- * User log out handler
- *
- * @param {Object} app current application
- * @param {Object} session current session object
- *
- */
-var onUserLeave = function(app, session) {
-	if(!session || !session.uid) {
-		return;
-	}
-	app.rpc.chat.chatRemote.kick(session, session.get('roomid'),session.uid,session.get('room'), app.get('serverId') , null);
-    app.rpc.chat.roomMemberRemote.changeRoomInfo(session, session.get('room'), 'out', session.get('roomid'), session.get('username'),null, app.get('serverId'), false,null);
-};
-
 
 
 /**
@@ -116,7 +177,15 @@ var onUserLeave = function(app, session) {
  *
  */
 handler.uploadPoint = function(msg, session, next) {
-    this.app.rpc.chat.chatRemote.uploadPoint(session, msg.roomid,session.get('username'),msg.content, this.app.get('serverId'), null);
+    var param = {
+        code:200,
+        msg: msg.content,
+        from: msg.username
+    };
+    var channel = this.channelService.getChannel(msg.roomid, true);
+
+    channel.pushMessage('onChat', param);
+//    this.app.rpc.chat.chatRemote.uploadPoint(session, msg.roomid,session.get('username'),msg.content, this.app.get('serverId'), null);
     next(null, {
         code:200,
         route:'uploadPoint'
@@ -137,7 +206,19 @@ handler.getEndPoint = function(msg, session, next) {
     var gameroom = this.app.get('gameroom');
     if(typeof  gameroom[msg.roomid] == "undefined"){
         this.app.get('gameroomstatus')[msg.roomid]="stop";
-        this.app.rpc.chat.roomMemberRemote.changeRoomStatus(session, msg.appcode,"stop",msg.roomid, this.app.get('serverId'), false,null);
+        var channel = this.channelService.getChannel( msg.appcode, false);
+
+        if(channel){
+            var param = {
+                code:200,
+                route: 'roomStatusChanged',
+                status:'stop',
+                roomid:msg.roomid
+            };
+            channel.pushMessage(param);
+        }
+
+//        this.app.rpc.chat.roomMemberRemote.changeRoomStatus(session, msg.appcode,"stop",msg.roomid, this.app.get('serverId'), false,null);
         next(null, {
             code:200,
             route:'replaygame'// 可以开始新游戏了
@@ -157,9 +238,56 @@ handler.getEndPoint = function(msg, session, next) {
     if(f){
         // 所有人局分都上传完了，就是一局结束了
         this.app.get('gameroomstatus')[msg.roomid]="stop";
-        this.app.rpc.chat.roomMemberRemote.changeRoomStatus(session, msg.appcode,"stop",msg.roomid, this.app.get('serverId'), false,null);
+        var channel2 = this.channelService.getChannel( msg.appcode, false);
+
+        if(channel2){
+            var param = {
+                code:200,
+                route: 'roomStatusChanged',
+                status:'stop',
+                roomid:msg.roomid
+            };
+            channel2.pushMessage(param);
+        }
+
+//        this.app.rpc.chat.roomMemberRemote.changeRoomStatus(session, msg.appcode,"stop",msg.roomid, this.app.get('serverId'), false,null);
         //
-        this.app.rpc.chat.chatRemote.pushEndPoint(session, msg.roomid, msg.appcode,session.get('username'),gameroom[msg.roomid], this.app.get('serverId'), null);
+        var channel = this.channelService.getChannel(msg.roomid, false);
+        var postparam={game:msg.appcode};
+        var i=0;
+        for(var p in gameroom[msg.roomid]){
+            postparam['username'+i]=p;
+            postparam['point'+i]=gameroom[msg.roomid][p];
+            i++;
+        }
+        postparam['num']=i;
+        var users=[];
+        request.post(settings.moguuploadpointurl, {form:postparam},function(error,response,body){
+            if(!error && response.statusCode == 200){
+//                console.log(fs.realpathSync('.'));
+                var result = JSON.parse(body);
+                if(result.success){
+                    for(var i=0;i<result.result.length;i++){
+                        gameUserDao.updateGameUserPoint(appcode,result.result[i],function(err,u){
+                            if(!err){
+                                users.push(u);
+                            }
+                        });
+                    }
+                }
+            }
+            if(channel){
+                var param = {
+                    code:200,
+                    roomid: roomid,
+                    users:users,
+                    endpoints:gameroom[msg.roomid]
+                };
+                channel.pushMessage('onEndPoint', param);
+            }
+        });
+
+//        this.app.rpc.chat.chatRemote.pushEndPoint(session, msg.roomid, msg.appcode,session.get('username'),gameroom[msg.roomid], this.app.get('serverId'), null);
         next(null, {
             code:200,
             result:gameroom[msg.roomid],
@@ -205,7 +333,19 @@ handler.cleanPoint = function(msg, session, next) {
 
 handler.changeRoomStatus = function(msg, session, next){
     this.app.get('gameroomstatus')[msg.roomid]=msg.status;
-    this.app.rpc.chat.roomMemberRemote.changeRoomStatus(session, msg.appcode,msg.status,msg.roomid, this.app.get('serverId'), false,null);
+    var channel = this.channelService.getChannel(msg.appcode, false);
+
+    if(channel){
+        var param = {
+            code:200,
+            route: 'roomStatusChanged',
+            status:msg.status,
+            roomid:msg.roomid
+        };
+        channel.pushMessage(param);
+    }
+
+//    this.app.rpc.chat.roomMemberRemote.changeRoomStatus(session, msg.appcode,msg.status,msg.roomid, this.app.get('serverId'), false,null);
 
     next(null, {
         code:200,

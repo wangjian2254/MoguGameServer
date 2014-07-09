@@ -64,20 +64,22 @@ handler.addRoomList = function(msg, session, next) {
                         message: '用户信息缓存错误。'
                     });
                 }else{
-                    self.app.rpc.chat.roomMemberRemote.add(session, appcode,username,msg, self.app.get('serverId'), true, function(err,gameuser){
-                        next(null, {
-                            route:'queryRoomList',
-                            code:200,
-                            roomlist:query(0,18,roominfo),
-                            roomcount:roominfo.roomlist.length,
-                            start:0
-                        });
+                    var channel = self.channelService.getChannel(appcode, true);
+                    if( !! channel) {
+                        channel.add(username, self.app.get('serverId'));
+                    }
+                    next(null, {
+                        route:'queryRoomList',
+                        code:200,
+                        roomlist:query(0,18,roominfo),
+                        roomcount:roominfo.roomlist.length,
+                        start:0
                     });
                 }
             });
         }
     });
-}
+};
 
 var query = function(start,limit,roominfo){
     var roominfolist = [];
@@ -176,10 +178,36 @@ var onUserLeave = function(app, session) {
     if(!session || !session.uid) {
         return;
     }
+    var appcode = session.get('room');
+    var channel2 = app.get('channelService').getChannel(appcode, false);
+    // leave channel
 
     if(session.get('roomid')) {
-        app.rpc.chat.chatRemote.kick(session, session.get('roomid'), session.uid, session.get('room'), app.get('serverId'), null);
-        app.rpc.chat.roomMemberRemote.changeRoomInfo(session, session.get('room'), 'out',   session.get('roomid'), session.get('username'),null, app.get('serverId'), false,null);
+        var roomid=session.get('roomid');
+        var channel = app.get('channelService').getChannel(roomid, false);
+        // leave channel
+        if( !! channel) {
+            channel.leave(session.uid, app.get('serverId'));
+            var param = {
+                code:200,
+                route: 'onLeave',
+                roomid:roomid,
+                user: session.uid
+            };
+            channel.pushMessage(param);
+        }
+
+        if(!!channel2){
+            var param2 = {
+                code:200,
+                route: 'memberChanged',
+                changed:'out',
+                user: username,
+                roomid:roomid
+            };
+            channel2.pushMessage(param2);
+        }
+
         if(app.get('gameroom')[session.get('roomid')]&& typeof  app.get('gameroom')[session.get('roomid')][session.uid]){
             delete app.get('gameroom')[session.get('roomid')][session.uid]
             if(app.get('gameroomstatus')[session.get('roomid')]=='full'){
@@ -187,14 +215,31 @@ var onUserLeave = function(app, session) {
             }
         }
     }
+    if( !! channel2) {
+        channel2.leave(session.uid,  app.get('serverId'));
+    }
+    try{
+        delete app.get('alluser')[appcode][session.uid];
+    }catch (err){
 
-    app.rpc.chat.roomMemberRemote.kick(session,  session.get('room'),session.uid, app.get('serverId'), null);
+    }
+
 
 };
 
 
 handler.quiteRoomList = function(msg,session,next){
-    this.app.rpc.chat.roomMemberRemote.kick(session, msg.appcode,session.uid, this.app.get('serverId'), null);
+//    this.app.rpc.chat.roomMemberRemote.kick(session, msg.appcode,session.uid, this.app.get('serverId'), null);
+    var channel = this.channelService.getChannel(msg.appcode, false);
+    // leave channel
+    if( !! channel) {
+        channel.leave(session.uid, app.get('serverId'));
+    }
+    try{
+        delete this.app.get('alluser')[msg.appcode][session.uid];
+    }catch (err){
+
+    }
     next(null,{
         code:200,
         route:'quiteRoomList'
@@ -205,31 +250,72 @@ handler.quiteRoomList = function(msg,session,next){
 
 handler.getMembersByRoom = function(msg,session,next){
     var status = this.app.get('gameroomstatus')[msg.roomid];
-    this.app.rpc.chat.chatRemote.getRoomMembers(session,msg.roomid,msg.appcode,false,function(err,users){
-        if(err){
-            next(null,{
-                code:500,
-                route:'getMembersByRoom',
-                message:'获取房间内玩家列表失败'
-            });
-            return;
-        }
-        if(!status){
-            status='stop';
-        }
+    var channel = this.channelService.getChannel(msg.roomid, false);
+    if(!status){
+        status='stop';
+    }
+    if( !! channel) {
+        gameUserDao.queryGameUsersByUsernames(msg.appcode,channel.getMembers(),function(err,users){
+            if(err){
+                next(null,{
+                    code:500,
+                    route:'getMembersByRoom',
+                    message:'获取房间内玩家列表失败'
+                });
+                return;
+            }else{
+                next(null,{
+                    code:200,
+                    route:'getMembersByRoom',
+                    room:{
+                        status:status,
+                        roomid:msg.roomid,
+                        users:users,
+                        appcode:msg.appcode
+                    }
+                });
+            }
+        });
+    }else{
         next(null,{
             code:200,
             route:'getMembersByRoom',
             room:{
                 status:status,
                 roomid:msg.roomid,
-                users:users,
+                users:[],
                 appcode:msg.appcode
             }
         });
-        return;
-    })
+    }
+
+//    this.app.rpc.chat.chatRemote.getRoomMembers(session,msg.roomid,msg.appcode,false,function(err,users){
+//        if(err){
+//            next(null,{
+//                code:500,
+//                route:'getMembersByRoom',
+//                message:'获取房间内玩家列表失败'
+//            });
+//            return;
+//        }
+//        if(!status){
+//            status='stop';
+//        }
+//        next(null,{
+//            code:200,
+//            route:'getMembersByRoom',
+//            room:{
+//                status:status,
+//                roomid:msg.roomid,
+//                users:users,
+//                appcode:msg.appcode
+//            }
+//        });
+//        return;
+//    })
 };
+
+
 handler.getRoomInfoByRoomId = function(msg,session,next){
     var self = this;
     roomDao.getRoomByAppcode(msg.appcode,function(err,roominfo) {
@@ -256,36 +342,37 @@ handler.getRoomInfoByRoomId = function(msg,session,next){
                 }
             }
             if(room){
-                self.app.rpc.chat.chatRemote.getRoomMembers(session,msg.roomid,msg.appcode,false,function(err,users){
+                gameUserDao.queryGameUsersByUsernames(msg.appcode,channel.getMembers(),function(err,users){
                     if(err){
                         next(null,{
                             code:500,
-                            route:'getRoomInfoByRoomId',
+                            route:'getMembersByRoom',
                             message:'获取房间内玩家列表失败'
                         });
                         return;
-                    }
-                    var f=true;
-                    for(var u in users){
-                        if(u.username==session.uid){
-                            f=false;
-                            break;
-                        }
-                    }
-                    if(!f){
-                        next(null,{
-                            code:501,
-                            route:'getRoomInfoByRoomId'
-                        });
                     }else{
-                        room['users']=users;
-                        next(null,{
-                            code:200,
-                            route:'getRoomInfoByRoomId',
-                            room:room
-                        });
+                        var f=true;
+                        for(var u in users){
+                            if(u.username==session.uid){
+                                f=false;
+                                break;
+                            }
+                        }
+                        if(!f){
+                            next(null,{
+                                code:501,
+                                route:'getRoomInfoByRoomId'
+                            });
+                        }else{
+                            room['users']=users;
+                            next(null,{
+                                code:200,
+                                route:'getRoomInfoByRoomId',
+                                room:room
+                            });
+                        }
+
                     }
-                    return;
                 });
             }else{
                 next(null,{
