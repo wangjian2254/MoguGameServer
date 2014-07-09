@@ -24,6 +24,7 @@ handler.checkOnLine = function(msg,session,next){
 
 
 handler.addRoomList = function(msg, session, next) {
+    this.app.game[msg.appcode]=true;
     var self = this;
     var appcode = msg.appcode;//appcode
     var username = msg.username;
@@ -71,7 +72,7 @@ handler.addRoomList = function(msg, session, next) {
                     next(null, {
                         route:'queryRoomList',
                         code:200,
-                        roomlist:query(0,18,roominfo),
+                        roomlist:query(0,18,roominfo,self.app,username),
                         roomcount:roominfo.roomlist.length,
                         start:0
                     });
@@ -81,7 +82,7 @@ handler.addRoomList = function(msg, session, next) {
     });
 };
 
-var query = function(start,limit,roominfo){
+var query = function(start,limit,roominfo,app,username){
     var roominfolist = [];
     var item=null;
     var room=null;
@@ -99,11 +100,17 @@ var query = function(start,limit,roominfo){
         room['maxnum'] = item['maxnum'];
         room['roomid'] = item['spaceid'];
         roominfolist.push(room);
+
+        if(!app.roomlisten[room['roomid']]){
+            app.roomlisten[room['roomid']] = {};
+        }
+        app.roomlisten[room['roomid']][username]=true;
     }
     return roominfolist;
 }
 
 handler.queryRoomList = function(msg,session,next){
+    var self = this;
     roomDao.getRoomByAppcode(msg.appcode,function(err,roominfo) {
 
         if (err) {
@@ -122,7 +129,7 @@ handler.queryRoomList = function(msg,session,next){
             next(null,{
                 route:'queryRoomList',
                 code:200,
-                roomlist:query(start,limit,roominfo),
+                roomlist:query(start,limit,roominfo,self.app,msg.username),
                 roomcount:roominfo.roomlist.length,
                 start:start
             });
@@ -218,6 +225,11 @@ var onUserLeave = function(app, session) {
     if( !! channel2) {
         channel2.leave(session.uid,  app.get('serverId'));
     }
+    for(var roomid in this.app.roomlisten){
+        if(this.app.roomlisten[roomid][session.uid]){
+            delete this.app.roomlisten[roomid][session.uid];
+        }
+    }
     try{
         delete app.get('alluser')[appcode][session.uid];
     }catch (err){
@@ -235,6 +247,11 @@ handler.quiteRoomList = function(msg,session,next){
     if( !! channel) {
         channel.leave(session.uid, this.app.get('serverId'));
     }
+    for(var roomid in this.app.roomlisten){
+        if(this.app.roomlisten[roomid][session.uid]){
+            delete this.app.roomlisten[roomid][session.uid];
+        }
+    }
     try{
         delete this.app.get('alluser')[msg.appcode][session.uid];
     }catch (err){
@@ -243,6 +260,20 @@ handler.quiteRoomList = function(msg,session,next){
     next(null,{
         code:200,
         route:'quiteRoomList'
+    });
+    return;
+}
+
+handler.addRoomListener = function(msg,session,next){
+    for(var roomid in msg.roomids){
+        if(!this.app.roomlisten[roomid]){
+            this.app.roomlisten[roomid] = {};
+        }
+        this.app.roomlisten[roomid][msg.username]=true;
+    }
+    next(null,{
+        code:200,
+        route:'addRoomListener'
     });
     return;
 }
@@ -318,74 +349,100 @@ handler.getMembersByRoom = function(msg,session,next){
 
 handler.getRoomInfoByRoomId = function(msg,session,next){
     var self = this;
-    roomDao.getRoomByAppcode(msg.appcode,function(err,roominfo) {
+    var members = self.channelService.getChannel(msg.roomid, true).getMembers();
+    var f=true;
+    for(var u in members){
+        if(u==session.uid){
+            f=false;
+            break;
+        }
+    }
+    if(f){
+        next(null,{
+            code:501,
+            route:'getRoomInfoByRoomId'
+        });
+    }
+    var room=self.app.roominfo[msg.roomid];
+    if(room){
+        gameUserDao.queryGameUsersByUsernames(msg.appcode,members,function(err,users){
+            if(err){
+                next(null,{
+                    code:500,
+                    route:'getMembersByRoom',
+                    message:'获取房间内玩家列表失败'
+                });
+                return;
+            }else{
 
-        if (err) {
-            console.log(err);
-            next(null, {
-                route: 'getRoomInfoByRoomId',
-                code: 500,
-                error: true,
-                message: '游戏房间信息尚未定义。'
-            });
-            return;
-        } else {
-            var room = {};
-            for (var i=0;i<roominfo.roomlist.length;i++){
-                if(roominfo.roomlist[i]['spaceid']==msg.roomid){
-                    item = roominfo.roomlist[i];
+                room['users']=users;
+                next(null,{
+                    code:200,
+                    route:'getRoomInfoByRoomId',
+                    room:room
+                });
 
-                    room['roomname'] = item['roomname'];
-                    room['maxnum'] = item['maxnum'];
-                    room['roomid'] = item['spaceid'];
-                    break;
-                }
+
             }
-            if(room){
-                console.log('getRoomInfoByRoomId');
-                var channel = self.channelService.getChannel(msg.roomid, true);
-                gameUserDao.queryGameUsersByUsernames(msg.appcode,channel.getMembers(),function(err,users){
-                    if(err){
-                        next(null,{
-                            code:500,
-                            route:'getMembersByRoom',
-                            message:'获取房间内玩家列表失败'
-                        });
-                        return;
-                    }else{
-                        var f=true;
-                        for(var u in users){
-                            if(users[u].username==session.uid){
-                                f=false;
-                                break;
-                            }
-                        }
-                        if(f){
+        });
+    }else{
+        roomDao.getRoomByAppcode(msg.appcode,function(err,roominfo) {
+
+            if (err) {
+                console.log(err);
+                next(null, {
+                    route: 'getRoomInfoByRoomId',
+                    code: 500,
+                    error: true,
+                    message: '游戏房间信息尚未定义。'
+                });
+                return;
+            } else {
+                room = {};
+                for (var i=0;i<roominfo.roomlist.length;i++){
+                    if(roominfo.roomlist[i]['spaceid']==msg.roomid){
+                        item = roominfo.roomlist[i];
+
+                        room['roomname'] = item['roomname'];
+                        room['maxnum'] = item['maxnum'];
+                        room['roomid'] = item['spaceid'];
+                        self.app.roominfo[msg.roomid]=room;
+                        break;
+                    }
+                }
+                if(room){
+                    gameUserDao.queryGameUsersByUsernames(msg.appcode,members,function(err,users){
+                        if(err){
                             next(null,{
-                                code:501,
-                                route:'getRoomInfoByRoomId'
+                                code:500,
+                                route:'getMembersByRoom',
+                                message:'获取房间内玩家列表失败'
                             });
+                            return;
                         }else{
+
                             room['users']=users;
                             next(null,{
                                 code:200,
                                 route:'getRoomInfoByRoomId',
                                 room:room
                             });
+
+
                         }
+                    });
+                }else{
+                    next(null,{
+                        code:500,
+                        route:'getRoomInfoByRoomId',
+                        message:'房间已经不存在'
+                    });
+                    return;
+                }
 
-                    }
-                });
-            }else{
-                next(null,{
-                    code:500,
-                    route:'getRoomInfoByRoomId',
-                    message:'房间已经不存在'
-                });
-                return;
             }
+        });
+    }
 
-        }
-    });
 
 };

@@ -6,10 +6,6 @@ var routeUtil = require('./app/util/routeUtil');
 
 var app = pomelo.createApp();
 app.set('name', 'mogu-gameserver');
-app.set('alluser',{},true);
-//app.set('roominfo',{},true);
-app.set('gameroom',{},true);
-app.set('gameroomstatus',{},true);
 
 // app configuration
 //app.configure('production|development', 'connector', function(){
@@ -22,7 +18,7 @@ app.set('gameroomstatus',{},true);
 //        });
 //});
 
-//var syncRommInfo = require('./app/components/syncRoomInfo');
+var syncRommMembers = require('./app/components/syncRoomMembers');
 app.loadConfig('mysql', app.getBase() + '/../shared/config/mysql.json');
 
 app.configure('production|development', 'connector', function(){
@@ -38,7 +34,14 @@ app.configure('production|development', 'connector', function(){
             heartbeatTimeout : 60,
             heartbeatInterval : 25
         });
-//    app.load(syncRommInfo,{interval:1000*60*10});
+
+    app.set('alluser',{},true);
+    app.set('roominfo',{},true);
+    app.set('roomlisten',{},true);
+    app.set('game',{},true);
+    app.set('gameroom',{},true);
+    app.set('gameroomstatus',{},true);
+    app.load(syncRommMembers,{interval:1000*1});
 });
 //app.configure('production|development', 'gate', function(){
 //    app.set('connectorConfig',
