@@ -136,7 +136,7 @@ handler.quiteRoom = function(msg,session,next){
     var channel = this.channelService.getChannel(msg.roomid, false);
     // leave channel
     if( !! channel) {
-        channel.leave(username, this.app.get('serverId'));
+        channel.leave(msg.username, this.app.get('serverId'));
         var param = {
             code:200,
             route: 'onLeave',
@@ -268,7 +268,7 @@ handler.getEndPoint = function(msg, session, next) {
                 var result = JSON.parse(body);
                 if(result.success){
                     for(var i=0;i<result.result.length;i++){
-                        gameUserDao.updateGameUserPoint(appcode,result.result[i],function(err,u){
+                        gameUserDao.updateGameUserPoint(msg.appcode,result.result[i],function(err,u){
                             if(!err){
                                 users.push(u);
                             }
@@ -276,10 +276,10 @@ handler.getEndPoint = function(msg, session, next) {
                     }
                 }
             }
-            if(channel){
+            if(!!channel){
                 var param = {
                     code:200,
-                    roomid: roomid,
+                    roomid: msg.roomid,
                     users:users,
                     endpoints:gameroom[msg.roomid]
                 };

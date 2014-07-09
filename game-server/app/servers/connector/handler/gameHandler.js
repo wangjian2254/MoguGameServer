@@ -233,7 +233,7 @@ handler.quiteRoomList = function(msg,session,next){
     var channel = this.channelService.getChannel(msg.appcode, false);
     // leave channel
     if( !! channel) {
-        channel.leave(session.uid, app.get('serverId'));
+        channel.leave(session.uid, this.app.get('serverId'));
     }
     try{
         delete this.app.get('alluser')[msg.appcode][session.uid];
@@ -342,6 +342,7 @@ handler.getRoomInfoByRoomId = function(msg,session,next){
                 }
             }
             if(room){
+                var channel = self.channelService.getChannel(msg.roomid, true);
                 gameUserDao.queryGameUsersByUsernames(msg.appcode,channel.getMembers(),function(err,users){
                     if(err){
                         next(null,{
