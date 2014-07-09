@@ -342,6 +342,7 @@ handler.getRoomInfoByRoomId = function(msg,session,next){
                 }
             }
             if(room){
+                console.log('getRoomInfoByRoomId');
                 var channel = self.channelService.getChannel(msg.roomid, true);
                 gameUserDao.queryGameUsersByUsernames(msg.appcode,channel.getMembers(),function(err,users){
                     if(err){
@@ -354,12 +355,12 @@ handler.getRoomInfoByRoomId = function(msg,session,next){
                     }else{
                         var f=true;
                         for(var u in users){
-                            if(u.username==session.uid){
+                            if(users[u].username==session.uid){
                                 f=false;
                                 break;
                             }
                         }
-                        if(!f){
+                        if(f){
                             next(null,{
                                 code:501,
                                 route:'getRoomInfoByRoomId'
