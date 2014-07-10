@@ -41,7 +41,7 @@ app.configure('production|development', 'connector', function(){
     app.set('game',{},true);
     app.set('gameroom',{},true);
     app.set('gameroomstatus',{},true);
-    app.load(syncRommMembers,{interval:1000*1});
+    app.load(syncRommMembers,{interval:2000*1});
 });
 //app.configure('production|development', 'gate', function(){
 //    app.set('connectorConfig',

@@ -17,7 +17,10 @@ var settings = require('../../config/settings.json')
  * @param {function} cb Call back function
  */
 gameUserDao.getUserByAppcode = function(appcode,username, cb) {
-    var gameuser=pomelo.app.get('alluser')[username];
+    if(!pomelo.app.get('alluser')[appcode]){
+        pomelo.app.get('alluser')[appcode]={};
+    }
+    var gameuser=pomelo.app.get('alluser')[appcode][username];
     if(gameuser){
         console.log("gameuser info on cache");
         utils.invokeCallback(cb, null, gameuser);
@@ -33,8 +36,7 @@ gameUserDao.getUserByAppcode = function(appcode,username, cb) {
             if (res && res.length === 1) {
                 var result = res[0];
                 var gameUser = new GameUser(result);
-                gameUser.appcode = appcode;
-                pomelo.app.get('alluser')[username]=gameUser;
+                pomelo.app.get('alluser')[appcode][username]=gameUser;
                 utils.invokeCallback(cb, err, gameUser);
 
             } else {
@@ -51,6 +53,9 @@ gameUserDao.getUserByAppcode = function(appcode,username, cb) {
  * @param {function} cb Call back function
  */
 gameUserDao.updateGameUser = function(appcode,gameuser, cb) {
+    if(!pomelo.app.get('alluser')[appcode]){
+        pomelo.app.get('alluser')[appcode]={};
+    }
     var self = this;
     this.getUserByAppcode(appcode,gameuser.username,function(err,user){
         if(err){
@@ -71,7 +76,7 @@ gameUserDao.updateGameUser = function(appcode,gameuser, cb) {
                     if (err) {
                         utils.invokeCallback(cb, err, null);
                     } else {
-                        pomelo.app.get('alluser')[gameuser.username]=gameuser;
+                        pomelo.app.get('alluser')[appcode][gameuser.username]=gameuser;
                         utils.invokeCallback(cb, null, gameuser);
                     }
                 });
@@ -84,7 +89,7 @@ gameUserDao.updateGameUser = function(appcode,gameuser, cb) {
                     if (err) {
                         utils.invokeCallback(cb, err, null);
                     } else {
-                        pomelo.app.get('alluser')[gameuser.username]=gameuser;
+                        pomelo.app.get('alluser')[appcode][gameuser.username]=gameuser;
                         utils.invokeCallback(cb, null, gameuser);
                     }
                 });
@@ -95,11 +100,14 @@ gameUserDao.updateGameUser = function(appcode,gameuser, cb) {
 
 
 gameUserDao.queryGameUsersByUsernames = function(appcode,usernames, cb) {
+    if(!pomelo.app.get('alluser')[appcode]){
+        pomelo.app.get('alluser')[appcode]={};
+    }
     var us='';
     var users=[];
     for(var i=0;i<usernames.length;i++){
-        if(pomelo.app.get('alluser')[usernames[i]]){
-            users.push(pomelo.app.get('alluser')[usernames[i]]);
+        if(pomelo.app.get('alluser')[appcode][usernames[i]]){
+            users.push(pomelo.app.get('alluser')[appcode][usernames[i]]);
         }else{
             us+="'"+usernames[i]+"',";
         }
@@ -117,8 +125,7 @@ gameUserDao.queryGameUsersByUsernames = function(appcode,usernames, cb) {
                 var gameUser=null;
                 for(var j=0;j<res.length;j++){
                     gameUser= new GameUser(res[j]);
-                    gameUser.appcode = appcode;
-                    pomelo.app.get('alluser')[username]=gameUser;
+                    pomelo.app.get('alluser')[appcode][gameUser.username]=gameUser;
                     users.push(gameUser);
                 }
 
@@ -131,13 +138,16 @@ gameUserDao.queryGameUsersByUsernames = function(appcode,usernames, cb) {
 };
 
 gameUserDao.updateGameUserPoint = function(appcode,gameuser, cb) {
+    if(!pomelo.app.get('alluser')[appcode]){
+        pomelo.app.get('alluser')[appcode]={};
+    }
     //updateuserpoint
     var args = [appcode,gameuser.p,gameuser.r, new Date().getTime(),gameuser.u];
     pomelo.app.get('dbclient').insert(sqldata.updateuserpoint.replace(/\?/,appcode.replace(/\./g,'_')), args, function(err, res) {
         if (err) {
             utils.invokeCallback(cb, err, null);
         } else {
-            var gu = pomelo.app.get('alluser')[gameuser.u];
+            var gu = pomelo.app.get('alluser')[appcode][gameuser.u];
             if(!gu){
                 gu = {username:gameuser.u};
             }

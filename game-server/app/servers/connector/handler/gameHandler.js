@@ -88,6 +88,9 @@ var query = function(start,limit,roominfo,app,username){
     var room=null;
 
 
+    if(!app.roomlisten[username]){
+        app.roomlisten[username]=[];
+    }
 
     for (var i=start;i<start+limit;i++){
         if(roominfo.roomlist.length<=i+1){
@@ -101,10 +104,10 @@ var query = function(start,limit,roominfo,app,username){
         room['roomid'] = item['spaceid'];
         roominfolist.push(room);
 
-        if(!app.roomlisten[room['roomid']]){
-            app.roomlisten[room['roomid']] = {};
+        if(app.roomlisten[username].indexOf(room['roomid'])==-1){
+            app.roomlisten[username].push(room['roomid']);
         }
-        app.roomlisten[room['roomid']][username]=true;
+
     }
     return roominfolist;
 }
@@ -225,11 +228,9 @@ var onUserLeave = function(app, session) {
     if( !! channel2) {
         channel2.leave(session.uid,  app.get('serverId'));
     }
-    for(var roomid in this.app.roomlisten){
-        if(this.app.roomlisten[roomid][session.uid]){
-            delete this.app.roomlisten[roomid][session.uid];
-        }
-    }
+
+    delete app.roomlisten[session.uid];
+
     try{
         delete app.get('alluser')[appcode][session.uid];
     }catch (err){
@@ -247,11 +248,9 @@ handler.quiteRoomList = function(msg,session,next){
     if( !! channel) {
         channel.leave(session.uid, this.app.get('serverId'));
     }
-    for(var roomid in this.app.roomlisten){
-        if(this.app.roomlisten[roomid][session.uid]){
-            delete this.app.roomlisten[roomid][session.uid];
-        }
-    }
+
+    delete this.app.roomlisten[session.uid];
+
     try{
         delete this.app.get('alluser')[msg.appcode][session.uid];
     }catch (err){
@@ -265,12 +264,13 @@ handler.quiteRoomList = function(msg,session,next){
 }
 
 handler.addRoomListener = function(msg,session,next){
-    for(var roomid in msg.roomids){
-        if(!this.app.roomlisten[roomid]){
-            this.app.roomlisten[roomid] = {};
-        }
-        this.app.roomlisten[roomid][msg.username]=true;
+
+    var channel = this.channelService.getChannel(msg.appcode, true);
+    if( !! channel) {
+        channel.add(msg.username, this.app.get('serverId'));
     }
+    this.app.roomlisten[msg.username]=msg.roomids;
+
     next(null,{
         code:200,
         route:'addRoomListener'
@@ -352,7 +352,7 @@ handler.getRoomInfoByRoomId = function(msg,session,next){
     var members = self.channelService.getChannel(msg.roomid, true).getMembers();
     var f=true;
     for(var u in members){
-        if(u==session.uid){
+        if(members[u]==session.uid){
             f=false;
             break;
         }

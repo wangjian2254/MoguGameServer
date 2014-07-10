@@ -2,7 +2,7 @@
  * Created by wangjian2254 on 14-6-28.
  */
 var fs = require('fs');
-var gameUserDao = require('../../../dao/gameUserDao');
+var gameUserDao = require('../dao/gameUserDao');
 module.exports = function(app,opts){
     return new SyncRoomMembers(app,opts);
 }
@@ -11,7 +11,6 @@ var DEFAULT_INTERVAL = 1000;
 
 var SyncRoomMembers = function(app, opts){
     this.app = app;
-    this.channelService = app.get('channelService');
     this.interval = opts.interval | DEFAULT_INTERVAL;
     this.timerId = null;
 }
@@ -21,49 +20,51 @@ SyncRoomMembers.name = '__SyncRoomMembers__';
 SyncRoomMembers.prototype.start = function(cb){
     //检测信息是否是最新的
     var self = this;
+    this.channelService = this.app.get('channelService');
     var timerfun = function(){
+        console.log(self.app.game);
         for(var appcode in self.app.game){
             var channel = self.channelService.getChannel(appcode, false);
+            var sid= self.app.get('serverId')
             if( !! channel && channel.getMembers().length>0) {
                 var ulist = [];
-                for(var roomid in self.app.roomlisten){
-
-                    ulist = [];
-                    for (var username in self.app.roomlisten[roomid]){
-                        ulist.push(username);
+                var roomlist=[];
+                for(var username in self.app.roomlisten){
+                    for(var i=0;i<self.app.roomlisten[username].length;i++){
+                        var roomid=self.app.roomlisten[username][i];
+                        var roomchannel = self.channelService.getChannel(roomid,false);
+                        if(roomchannel&&roomchannel.getMembers().length>0){
+                            var status = self.app.get('gameroomstatus')[roomid];
+                            if(!status){
+                                status='stop';
+                            }
+                            var room={
+                                status:status,
+                                    roomid:roomid,
+                                    users:roomchannel.getMembers()
+                            }
+                            roomlist.push(room);
+                            ulist.pushAll(roomchannel.getMembers());
+                        }
                     }
                     if(ulist.length>0){
-                        var roomchannel = self.channelService.getChannel(roomid,false);
-                        var status = self.app.get('gameroomstatus')[roomid];
-                        if(!status){
-                            status='stop';
-                        }
-                        var param={
-                            code:200,
-                            route:'getMembersByRoom',
-                            room:{
-                                status:status,
-                                roomid:roomid,
-                                users:[],
-                                appcode:appcode
-                            }
-                        };
-                        if(!!roomchannel&&roomchannel.getMembers().length>0){
-                            gameUserDao.queryGameUsersByUsernames(appcode,roomchannel.getMembers(),function(err,users){
-                                if(err){
-                                    self.app.roomlisten[roomid]={};
-                                    channel.pushMessageByUids(param,ulist);
+                        gameUserDao.queryGameUsersByUsernames(appcode,ulist,function(err,users){
+                            if(err){
+                                self.app.roomlisten[username]={};
+                                console.error("查询用户集错误："+JSON.stringify(ulist));
 
-                                }else{
-                                    param.users=users;
-                                    self.app.roomlisten[roomid]={};
-                                    channel.pushMessageByUids(param,ulist);
-                                }
-                            });
-                        }else{
-                            self.app.roomlisten[roomid]={};
-                            channel.pushMessageByUids(param,ulist);
-                        }
+                            }else{
+                                var param={
+                                    code:200,
+                                    route:'getMembersByRoom',
+                                    appcode:appcode,
+                                    users:users,
+                                    rooms:roomlist
+                                };
+                                self.app.roomlisten[username]={};
+                                self.channelService.pushMessageByUids(param,[{uid:username,sid:sid}]);
+                            }
+                        });
                     }
 
                 }
