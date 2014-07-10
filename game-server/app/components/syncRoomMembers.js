@@ -44,7 +44,7 @@ SyncRoomMembers.prototype.start = function(cb){
                                     users:roomchannel.getMembers()
                             }
                             roomlist.push(room);
-                            ulist.pushAll(roomchannel.getMembers());
+                            ulist.push.apply(roomchannel.getMembers());
                         }
                     }
                     if(ulist.length>0){
