@@ -93,7 +93,7 @@ var query = function(start,limit,roominfo,app,username){
     }
 
     for (var i=start;i<start+limit;i++){
-        if(roominfo.roomlist.length<=i+1){
+        if(roominfo.roomlist.length<i+1){
             break;
         }
 
