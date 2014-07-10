@@ -25,11 +25,12 @@ SyncRoomMembers.prototype.start = function(cb){
         try{
             for(var appcode in self.app.game){
                 var channel = self.channelService.getChannel(appcode, false);
-                var sid= self.app.get('serverId')
+                var sid= self.app.get('serverId');
                 if( !! channel && channel.getMembers().length>0) {
-                    var ulist = [];
-                    var roomlist=[];
+
                     for(var username in self.app.roomlisten){
+                        var ulist = [];
+                        var roomlist=[];
                         for(var i=0;i<self.app.roomlisten[username].length;i++){
                             var roomid=self.app.roomlisten[username][i];
                             var roomchannel = self.channelService.getChannel(roomid,false);
@@ -44,13 +45,16 @@ SyncRoomMembers.prototype.start = function(cb){
                                     users:roomchannel.getMembers()
                                 }
                                 roomlist.push(room);
-                                ulist.push.apply(roomchannel.getMembers());
+                                for(var u in roomchannel.getMembers()){
+                                    ulist.push(roomchannel.getMembers()[u]);
+                                }
                             }
                         }
+                        self.app.roomlisten[username]=[];
                         if(ulist.length>0){
                             gameUserDao.queryGameUsersByUsernames(appcode,ulist,function(err,users){
                                 if(err){
-                                    self.app.roomlisten[username]={};
+
                                     console.error("查询用户集错误："+JSON.stringify(ulist));
 
                                 }else{
@@ -61,8 +65,8 @@ SyncRoomMembers.prototype.start = function(cb){
                                         users:users,
                                         rooms:roomlist
                                     };
-                                    self.app.roomlisten[username]={};
                                     self.channelService.pushMessageByUids(param,[{uid:username,sid:sid}]);
+                                    console.log('成功推送：'+username);
                                 }
                             });
                         }

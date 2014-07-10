@@ -238,7 +238,10 @@ var onUserLeave = function(app, session) {
 
     try{
         delete app.roomlisten[session.uid];
-        delete app.get('alluser')[appcode][session.uid];
+        if(app.get('alluser')[appcode]){
+            delete app.get('alluser')[appcode][session.uid];
+        }
+
     }catch (err){
         console.error(err);
     }
