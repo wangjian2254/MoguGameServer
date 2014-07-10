@@ -219,7 +219,12 @@ var onUserLeave = function(app, session) {
         }
 
         if(app.get('gameroom')[session.get('roomid')]&& typeof  app.get('gameroom')[session.get('roomid')][session.uid]){
-            delete app.get('gameroom')[session.get('roomid')][session.uid]
+            try{
+                delete app.get('gameroom')[session.get('roomid')][session.uid]
+            }catch (err){
+                console.error(err);
+            }
+
             if(app.get('gameroomstatus')[session.get('roomid')]=='full'){
                 app.get('gameroomstatus')[session.get('roomid')]='stop';
             }
@@ -229,12 +234,13 @@ var onUserLeave = function(app, session) {
         channel2.leave(session.uid,  app.get('serverId'));
     }
 
-    delete app.roomlisten[session.uid];
+
 
     try{
+        delete app.roomlisten[session.uid];
         delete app.get('alluser')[appcode][session.uid];
     }catch (err){
-
+        console.error(err);
     }
 
 
@@ -265,10 +271,13 @@ handler.quiteRoomList = function(msg,session,next){
 
 handler.addRoomListener = function(msg,session,next){
 
-    var channel = this.channelService.getChannel(msg.appcode, true);
-    if( !! channel) {
-        channel.add(msg.username, this.app.get('serverId'));
+    if(!this.app.roomlisten[msg.username]||this.app.roomlisten[msg.username].length==0){
+        var channel = this.channelService.getChannel(msg.appcode, true);
+        if( !! channel&&channel.getMembers().indexOf(msg.username)<0) {
+            channel.add(msg.username, this.app.get('serverId'));
+        }
     }
+
     this.app.roomlisten[msg.username]=msg.roomids;
 
     next(null,{

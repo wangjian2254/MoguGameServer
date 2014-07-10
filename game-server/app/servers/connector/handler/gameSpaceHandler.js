@@ -76,7 +76,9 @@ handler.addRoom = function(msg, session, next) {
 
         channel.pushMessage(param);
         channel.add(username,  self.app.get('serverId'));
+        delete self.app.roomlisten[username];
         var channel2 = self.channelService.getChannel(appcode, false);
+        console.log(channel2.getMembers());
         if(!!channel2){
             var param2 = {
                 code:200,
