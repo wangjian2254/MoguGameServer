@@ -15,7 +15,7 @@ var handler = Handler.prototype;
 
 function hasOnline(msg,session,next,app){
     var sessionService = app.get('sessionService');
-    if(!sessionService.getByUid(username)) {
+    if(!sessionService.getByUid(msg.username)) {
         next(null, {
             route:'disconnect',
             code: 404
