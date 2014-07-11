@@ -14,7 +14,22 @@ var Handler = function(app) {
 
 var handler = Handler.prototype;
 
+function hasOnline(msg,session,next,app){
+    var sessionService = app.get('sessionService');
+    if(!sessionService.getByUid(username)) {
+        next(null, {
+            route:'disconnect',
+            code: 404
+        });
+        return true;
+    }
+    return false;
+}
+
 handler.checkOnLine = function(msg,session,next){
+    if(hasOnline(msg,session,next,this.app)){
+        return;
+    }
     next(null, {
         route:'checkOnLine',
         code: 200
@@ -113,6 +128,9 @@ var query = function(start,limit,roominfo,app,username){
 }
 
 handler.queryRoomList = function(msg,session,next){
+    if(hasOnline(msg,session,next,this.app)){
+        return;
+    }
     var self = this;
     roomDao.getRoomByAppcode(msg.appcode,function(err,roominfo) {
 
@@ -144,6 +162,9 @@ handler.queryRoomList = function(msg,session,next){
 }
 
 handler.quickGame = function(msg,session,next){
+    if(hasOnline(msg,session,next,this.app)){
+        return;
+    }
     var self = this;
     roomDao.getRoomByAppcode(msg.appcode,function(err,roominfo) {
 
@@ -252,6 +273,9 @@ var onUserLeave = function(app, session) {
 
 
 handler.quiteRoomList = function(msg,session,next){
+    if(hasOnline(msg,session,next,this.app)){
+        return;
+    }
 //    this.app.rpc.chat.roomMemberRemote.kick(session, msg.appcode,session.uid, this.app.get('serverId'), null);
     var channel = this.channelService.getChannel(msg.appcode, false);
     // leave channel
@@ -274,7 +298,9 @@ handler.quiteRoomList = function(msg,session,next){
 }
 
 handler.addRoomListener = function(msg,session,next){
-
+    if(hasOnline(msg,session,next,this.app)){
+        return;
+    }
     if(!this.app.roomlisten[msg.username]||this.app.roomlisten[msg.username].length==0){
         var channel = this.channelService.getChannel(msg.appcode, true);
         if( !! channel&&channel.getMembers().indexOf(msg.username)==-1) {
@@ -293,6 +319,9 @@ handler.addRoomListener = function(msg,session,next){
 
 
 handler.getMembersByRoom = function(msg,session,next){
+    if(hasOnline(msg,session,next,this.app)){
+        return;
+    }
     var status = this.app.get('gameroomstatus')[msg.roomid];
     var channel = this.channelService.getChannel(msg.roomid, false);
     if(!status){
@@ -361,6 +390,9 @@ handler.getMembersByRoom = function(msg,session,next){
 
 
 handler.getRoomInfoByRoomId = function(msg,session,next){
+    if(hasOnline(msg,session,next,this.app)){
+        return;
+    }
     var self = this;
     var members = self.channelService.getChannel(msg.roomid, true).getMembers();
     var f=true;

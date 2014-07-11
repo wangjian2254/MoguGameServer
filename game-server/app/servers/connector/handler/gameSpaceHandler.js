@@ -12,6 +12,19 @@ var Handler = function(app) {
 
 var handler = Handler.prototype;
 
+
+function hasOnline(msg,session,next,app){
+    var sessionService = app.get('sessionService');
+    if(!sessionService.getByUid(username)) {
+        next(null, {
+            route:'disconnect',
+            code: 404
+        });
+        return true;
+    }
+    return false;
+}
+
 /**
  * New client entry chat server.
  *
@@ -21,6 +34,9 @@ var handler = Handler.prototype;
  * @return {Void}
  */
 handler.addRoom = function(msg, session, next) {
+    if(hasOnline(msg,session,next,this.app)){
+        return;
+    }
     if(this.app.get('gameroomstatus')[msg.roomid]=="playing"){
         next(null,{
             code:500,
@@ -76,9 +92,16 @@ handler.addRoom = function(msg, session, next) {
 
         channel.pushMessage(param);
         channel.add(username,  self.app.get('serverId'));
+        var sessionService = self.app.get('sessionService');
+
+        session.set('roomid', roomid);
+        session.pushAll(function(err) {
+            if(err) {
+                console.error('set room for session service failed! error is : %j', err.stack);
+            }
+        });
         delete self.app.roomlisten[username];
         var channel2 = self.channelService.getChannel(appcode, false);
-        console.log(channel2.getMembers());
         if(!!channel2){
             var param2 = {
                 code:200,
@@ -100,6 +123,9 @@ handler.addRoom = function(msg, session, next) {
 
 
 handler.quiteRoom = function(msg,session,next){
+    if(hasOnline(msg,session,next,this.app)){
+        return;
+    }
     if(msg.roomid&&this.app.get('gameroom')[msg.roomid]&& typeof  this.app.get('gameroom')[msg.roomid][session.uid]){
         delete this.app.get('gameroom')[msg.roomid][session.uid]
         if(this.app.get('gameroomstatus')[msg.roomid]=='full'){
@@ -150,6 +176,9 @@ handler.quiteRoom = function(msg,session,next){
  *
  */
 handler.uploadPoint = function(msg, session, next) {
+    if(hasOnline(msg,session,next,this.app)){
+        return;
+    }
     var param = {
         code:200,
         msg: msg.content,
@@ -166,6 +195,9 @@ handler.uploadPoint = function(msg, session, next) {
 };
 
 handler.uploadEndPoint = function(msg, session, next) {
+    if(hasOnline(msg,session,next,this.app)){
+        return;
+    }
     var gameroom = this.app.get('gameroom');
     if(typeof  gameroom[msg.roomid] == "undefined"){
         gameroom[msg.roomid]={};
@@ -175,6 +207,9 @@ handler.uploadEndPoint = function(msg, session, next) {
 };
 
 handler.getEndPoint = function(msg, session, next) {
+    if(hasOnline(msg,session,next,this.app)){
+        return;
+    }
     // 如果有人退出了游戏，则新的房主，访问此接口，确保，局分处理完成
     var gameroom = this.app.get('gameroom');
     if(typeof  gameroom[msg.roomid] == "undefined"){
@@ -290,6 +325,9 @@ handler.getEndPoint = function(msg, session, next) {
  */
 
 handler.cleanPoint = function(msg, session, next) {
+    if(hasOnline(msg,session,next,this.app)){
+        return;
+    }
     this.app.get('gameroom')[msg.roomid]={};
     for(var i=0;i<msg.members;i++){
         this.app.get('gameroom')[msg.roomid][msg.members[i]]=null;
@@ -305,6 +343,9 @@ handler.cleanPoint = function(msg, session, next) {
 
 
 handler.changeRoomStatus = function(msg, session, next){
+    if(hasOnline(msg,session,next,this.app)){
+        return;
+    }
     this.app.get('gameroomstatus')[msg.roomid]=msg.status;
     var channel = this.channelService.getChannel(msg.appcode, false);
 
