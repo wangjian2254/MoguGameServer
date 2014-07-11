@@ -95,36 +95,7 @@ handler.addRoom = function(msg, session, next) {
             route:'addRoom',
             roomid:roomid
         });
-//        cb(null,gameuser,channel.getMembers().length);
     });
-
-	//put user into channel
-//	self.app.rpc.chat.chatRemote.add(session, roomid,username,appcode, self.app.get('serverId'), true, function(err,gameuser,usernum){
-//        if(err){
-//            var message='获取房间内玩家列表失败';
-//            if(typeof err.msg == 'string'){
-//                message=err.msg;
-//            }
-//            next(null,{
-//                code:500,
-//                route:'addRoom',
-//                message:message
-//            });
-//            return;
-//        }
-//        if(usernum>=6){
-//            // 未来 可以通过 roomid　的第一个"_"前的数字 来决定房间最大人数。目前暂定为6人。
-//            self.app.get('gameroomstatus')[msg.roomid]='full';
-//        }
-//
-//
-//        self.app.rpc.chat.roomMemberRemote.changeRoomInfo(session, appcode,'in',roomid,username,gameuser, self.app.get('serverId'), true,null);
-//        next(null, {
-//            code:200,
-//            route:'addRoom',
-//            roomid:roomid
-//		});
-//	});
 };
 
 
