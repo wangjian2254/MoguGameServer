@@ -4,6 +4,7 @@
 var GameUser = function(opts) {
     this.username = opts.username;
     this.nickname = opts.nickname;
+    this.head = opts.head;
     this.point = opts.point;
     this.rank = opts.rank;
     if(opts.timeline){

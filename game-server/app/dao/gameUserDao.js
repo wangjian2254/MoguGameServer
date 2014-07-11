@@ -70,7 +70,7 @@ gameUserDao.updateGameUser = function(appcode,gameuser, cb) {
             });
         }else{
             if(!user){
-                var args = [ gameuser.username,gameuser.nickname,gameuser.point,gameuser.rank, new Date().getTime()];
+                var args = [ gameuser.username,gameuser.nickname,gameuser.head,gameuser.point,gameuser.rank, new Date().getTime()];
 
                 pomelo.app.get('dbclient').insert(sqldata.createuser.replace(/\?/,appcode.replace(/\./g,'_')), args, function(err, res) {
                     if (err) {
@@ -80,10 +80,10 @@ gameUserDao.updateGameUser = function(appcode,gameuser, cb) {
                         utils.invokeCallback(cb, null, gameuser);
                     }
                 });
-            }else if((gameuser.timeline&&gameuser.timeline==user.timeline)||(!gameuser.timeline&&user.nickname==gameuser.nickname&&user.point==gameuser.point&&user.rank==gameuser.rank)){
+            }else if((gameuser.timeline&&gameuser.timeline==user.timeline)||(!gameuser.timeline&&user.nickname==gameuser.nickname&&user.head==gameuser.head&&user.point==gameuser.point&&user.rank==gameuser.rank)){
                 utils.invokeCallback(cb, null, gameuser);
             }else{
-                var args = [gameuser.nickname,gameuser.point,gameuser.rank, new Date().getTime(),gameuser.username];
+                var args = [gameuser.nickname,gameuser.head,gameuser.point,gameuser.rank, new Date().getTime(),gameuser.username];
                 console.log(args);
                 pomelo.app.get('dbclient').insert(sqldata.updateuser.replace(/\?/,appcode.replace(/\./g,'_')), args, function(err, res) {
                     if (err) {
