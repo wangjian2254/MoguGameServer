@@ -66,7 +66,7 @@ handler.addRoomList = function(msg, session, next) {
                     });
                 }else{
                     var channel = self.channelService.getChannel(appcode, true);
-                    if( !! channel) {
+                    if( !! channel && channel.getMembers().indexOf(username)==-1) {
                         channel.add(username, self.app.get('serverId'));
                     }
                     next(null, {
@@ -190,6 +190,9 @@ var onUserLeave = function(app, session) {
     }
     var appcode = session.get('room');
     var channel2 = app.get('channelService').getChannel(appcode, false);
+    if( !! channel2) {
+        channel2.leave(session.uid,  app.get('serverId'));
+    }
     // leave channel
 
     if(session.get('roomid')) {
@@ -230,9 +233,7 @@ var onUserLeave = function(app, session) {
             }
         }
     }
-    if( !! channel2) {
-        channel2.leave(session.uid,  app.get('serverId'));
-    }
+
 
 
 
@@ -273,7 +274,7 @@ handler.addRoomListener = function(msg,session,next){
 
     if(!this.app.roomlisten[msg.username]||this.app.roomlisten[msg.username].length==0){
         var channel = this.channelService.getChannel(msg.appcode, true);
-        if( !! channel&&channel.getMembers().indexOf(msg.username)<0) {
+        if( !! channel&&channel.getMembers().indexOf(msg.username)==-1) {
             channel.add(msg.username, this.app.get('serverId'));
         }
     }
