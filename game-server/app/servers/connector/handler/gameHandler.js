@@ -22,6 +22,13 @@ function hasOnline(msg,session,next,app){
             code: 404
         });
         return true;
+    }else if(!session.uid){
+        next(null, {
+            route:'disconnect',
+            message:'登录异常，请重新登录',
+            code: 404
+        });
+        return true;
     }
     return false;
 }
@@ -36,6 +43,115 @@ handler.checkOnLine = function(msg,session,next){
     });
     return;
 }
+
+
+/**
+ * New client entry chat server.
+ *
+ * @param  {Object}   msg     request message
+ * @param  {Object}   session current session object
+ * @param  {Function} next    next stemp callback
+ * @return {Void}
+ */
+handler.addRoom = function(msg, session, next) {
+    var self = this;
+    var roomid = msg.roomid;
+    var appcode = msg.appcode;
+    var username = msg.username
+
+    var sessionService = self.app.get('sessionService');
+    //第一次登陆
+    if( ! sessionService.getByUid(username)) {
+        session.bind(username);
+        session.set('username', username);
+
+        session.on('closed', onUserLeave.bind(null, self.app));
+    }
+    session.set('room', appcode);
+    session.set('roomid', roomid);
+    session.pushAll(function(err) {
+        if(err) {
+            console.error('set room for session service failed! error is : %j', err.stack);
+        }
+    });
+
+    if(this.app.get('gameroomstatus')[msg.roomid]=="playing"){
+        next(null,{
+            code:500,
+            route:'addRoom',
+            message:"房间正在游戏中，无法进入。"
+        });
+        return;
+    }
+
+    var channel = this.channelService.getChannel(roomid, true);
+    var users = channel.getMembers();
+    if(users.indexOf(username)>=0){
+        next(null, {
+            code:200,
+            route:'addRoom',
+            roomid:roomid
+        });
+        return;
+    }
+    if(users.length>=6){
+        next(null, {
+            code:500,
+            message:"房间已经满员，无法加入。",
+            route:'addRoom'
+        });
+        return;
+    }
+
+    gameUserDao.getUserByAppcode(appcode,username,function(err,gameuser){
+        if(err){
+            next(null, {
+                code:500,
+                message:"获取用户信息错误。",
+                route:'addRoom'
+            });
+            return;
+        }
+
+        var param = {
+            code:200,
+            route: 'onAdd',
+            user: username,
+            roomid:roomid,
+            userinfo: gameuser
+        };
+
+        channel.pushMessage(param);
+        channel.add(username,  self.app.get('serverId'));
+        var sessionService = self.app.get('sessionService');
+
+        session.set('roomid', roomid);
+        session.pushAll(function(err) {
+            if(err) {
+                console.error('set room for session service failed! error is : %j', err.stack);
+            }
+        });
+        delete self.app.roomlisten[username];
+        var channel2 = self.channelService.getChannel(appcode, false);
+        if(!!channel2){
+            var param2 = {
+                code:200,
+                route: 'memberChanged',
+                changed:'in',
+                user: username,
+                roomid:roomid,
+                userinfo: gameuser
+            };
+            channel2.pushMessage(param2);
+        }
+        next(null, {
+            code:200,
+            route:'addRoom',
+            roomid:roomid
+        });
+    });
+};
+
 
 
 handler.addRoomList = function(msg, session, next) {
@@ -236,7 +352,7 @@ var onUserLeave = function(app, session) {
                 code:200,
                 route: 'memberChanged',
                 changed:'out',
-                user: username,
+                user: session.uid,
                 roomid:roomid
             };
             channel2.pushMessage(param2);
@@ -396,10 +512,7 @@ handler.getRoomInfoByRoomId = function(msg,session,next){
     var self = this;
     var members = self.channelService.getChannel(msg.roomid, true).getMembers();
     var f=true;
-    console.log(members);
     for(var i=0;i<members.length;i++){
-        console.log(members[i]);
-        console.log(session.uid);
         if(members[i]==session.uid){
             f=false;
             break;
