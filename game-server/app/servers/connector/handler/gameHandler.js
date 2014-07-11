@@ -396,12 +396,15 @@ handler.getRoomInfoByRoomId = function(msg,session,next){
     var self = this;
     var members = self.channelService.getChannel(msg.roomid, true).getMembers();
     var f=true;
+    console.log(members);
     for(var i=0;i<members.length;i++){
+        console.log(members[i]);
         if(members[i]==session.uid){
             f=false;
             break;
         }
     }
+
     if(f){
         next(null,{
             code:501,

@@ -34,9 +34,26 @@ function hasOnline(msg,session,next,app){
  * @return {Void}
  */
 handler.addRoom = function(msg, session, next) {
-    if(hasOnline(msg,session,next,this.app)){
-        return;
+    var self = this;
+    var roomid = msg.roomid;
+    var appcode = msg.appcode;
+    var username = msg.username
+
+    var sessionService = self.app.get('sessionService');
+    //第一次登陆
+    if( ! sessionService.getByUid(username)) {
+        session.bind(username);
+        session.set('username', username);
+
+        session.on('closed', onUserLeave.bind(null, self.app));
     }
+    session.set('room', appcode);
+    session.pushAll(function(err) {
+        if(err) {
+            console.error('set room for session service failed! error is : %j', err.stack);
+        }
+    });
+
     if(this.app.get('gameroomstatus')[msg.roomid]=="playing"){
         next(null,{
             code:500,
@@ -45,10 +62,7 @@ handler.addRoom = function(msg, session, next) {
         });
         return;
     }
-	var self = this;
-	var roomid = msg.roomid;
-    var appcode = msg.appcode;
-	var username = msg.username
+
 
     var channel = this.channelService.getChannel(roomid, true);
     var users = channel.getMembers();
@@ -119,6 +133,80 @@ handler.addRoom = function(msg, session, next) {
             roomid:roomid
         });
     });
+};
+
+
+/**
+ * User log out handler
+ *
+ * @param {Object} app current application
+ * @param {Object} session current session object
+ *
+ */
+var onUserLeave = function(app, session) {
+    if(!session || !session.uid) {
+        return;
+    }
+    var appcode = session.get('room');
+    var channel2 = app.get('channelService').getChannel(appcode, false);
+    if( !! channel2) {
+        channel2.leave(session.uid,  app.get('serverId'));
+    }
+    // leave channel
+
+    if(session.get('roomid')) {
+        var roomid=session.get('roomid');
+        var channel = app.get('channelService').getChannel(roomid, false);
+        // leave channel
+        if( !! channel) {
+            channel.leave(session.uid, app.get('serverId'));
+            var param = {
+                code:200,
+                route: 'onLeave',
+                roomid:roomid,
+                user: session.uid
+            };
+            channel.pushMessage(param);
+        }
+
+        if(!!channel2){
+            var param2 = {
+                code:200,
+                route: 'memberChanged',
+                changed:'out',
+                user: username,
+                roomid:roomid
+            };
+            channel2.pushMessage(param2);
+        }
+
+        if(app.get('gameroom')[session.get('roomid')]&& typeof  app.get('gameroom')[session.get('roomid')][session.uid]){
+            try{
+                delete app.get('gameroom')[session.get('roomid')][session.uid]
+            }catch (err){
+                console.error(err);
+            }
+
+            if(app.get('gameroomstatus')[session.get('roomid')]=='full'){
+                app.get('gameroomstatus')[session.get('roomid')]='stop';
+            }
+        }
+    }
+
+
+
+
+    try{
+        delete app.roomlisten[session.uid];
+        if(app.get('alluser')[appcode]){
+            delete app.get('alluser')[appcode][session.uid];
+        }
+
+    }catch (err){
+        console.error(err);
+    }
+
+
 };
 
 
