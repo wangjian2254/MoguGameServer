@@ -399,6 +399,7 @@ handler.getRoomInfoByRoomId = function(msg,session,next){
     console.log(members);
     for(var i=0;i<members.length;i++){
         console.log(members[i]);
+        console.log(session.uid);
         if(members[i]==session.uid){
             f=false;
             break;
