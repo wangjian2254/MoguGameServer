@@ -396,8 +396,8 @@ handler.getRoomInfoByRoomId = function(msg,session,next){
     var self = this;
     var members = self.channelService.getChannel(msg.roomid, true).getMembers();
     var f=true;
-    for(var u in members){
-        if(members[u]==session.uid){
+    for(var i=0;i<members.length;i++){
+        if(members[i]==session.uid){
             f=false;
             break;
         }
@@ -407,6 +407,7 @@ handler.getRoomInfoByRoomId = function(msg,session,next){
             code:501,
             route:'getRoomInfoByRoomId'
         });
+        return;
     }
     var room=self.app.roominfo[msg.roomid];
     if(room){
