@@ -513,7 +513,7 @@ handler.getRoomInfoByRoomId = function(msg,session,next){
     var members = self.channelService.getChannel(msg.roomid, true).getMembers();
     var f=true;
     for(var i=0;i<members.length;i++){
-        if(members[i]==session.uid){
+        if(members[i]==msg.username){
             f=false;
             break;
         }
