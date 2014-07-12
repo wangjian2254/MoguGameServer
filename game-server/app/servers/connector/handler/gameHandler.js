@@ -158,13 +158,14 @@ handler.addRoom = function(msg, session, next) {
 
 
 handler.addRoomList = function(msg, session, next) {
+    console.log('0');
     this.app.game[msg.appcode]=true;
     var self = this;
     var appcode = msg.appcode;//appcode
     var username = msg.username;
     var sessionService = self.app.get('sessionService');
     if(!session.uid&&sessionService.getByUid(username)){
-        sessionService.kickByUid(username);
+        sessionService.kick(username);
     }
     //第一次登陆
     if( ! sessionService.getByUid(username)) {
@@ -180,7 +181,6 @@ handler.addRoomList = function(msg, session, next) {
         }
     });
     roomDao.getRoomByAppcode(msg.appcode,function(err,roominfo){
-
         if(err){
             console.log(err);
             next(null,{
@@ -376,10 +376,6 @@ var onUserLeave = function(app, session) {
             }
         }
     }
-
-
-
-
     try{
         delete app.roomlisten[session.uid];
         if(app.get('alluser')[appcode]){
@@ -389,8 +385,6 @@ var onUserLeave = function(app, session) {
     }catch (err){
         console.error(err);
     }
-
-
 };
 
 
