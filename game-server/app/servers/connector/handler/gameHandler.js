@@ -513,13 +513,19 @@ handler.getRoomInfoByRoomId = function(msg,session,next){
     var members = self.channelService.getChannel(msg.roomid, true).getMembers();
     var f=true;
     for(var i=0;i<members.length;i++){
-        if(members[i]==msg.username){
+        if(members[i]==session.uid){
             f=false;
             break;
         }
     }
 
     if(f){
+        console.log("501:"+msg.username);
+        console.log("501:"+session.uid);
+        console.log(members);
+        if(members.length>0){
+            console.log(members[0]);
+        }
         next(null,{
             code:501,
             route:'getRoomInfoByRoomId'
