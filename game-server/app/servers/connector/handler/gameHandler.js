@@ -528,6 +528,7 @@ handler.getRoomInfoByRoomId = function(msg,session,next){
         }
         next(null,{
             code:501,
+            roomid:msg.roomid,
             route:'getRoomInfoByRoomId'
         });
         return;
