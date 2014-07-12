@@ -61,7 +61,7 @@ handler.addRoom = function(msg, session, next) {
 
     var sessionService = self.app.get('sessionService');
     if(!session.uid&&sessionService.getByUid(username)){
-        sessionService.kickByUid(username);
+        sessionService.kick(username);
     }
     //第一次登陆
     if( ! sessionService.getByUid(username)) {
