@@ -1,5 +1,5 @@
 var pomelo = require('pomelo');
-var routeUtil = require('./app/util/routeUtil');
+//var routeUtil = require('./app/util/routeUtil');
 /**
  * Init app for client.
  */
@@ -51,8 +51,8 @@ app.configure('production|development', 'connector', function(){
 //        });
 //});
 app.configure('production|development', 'gate', function(){
-    var dbclient = require('./app/dao/mysql/mysql').init(app);
-    app.set('dbclient', dbclient);
+//    var dbclient = require('./app/dao/mysql/mysql').init(app);
+//    app.set('dbclient', dbclient);
     app.set('connectorConfig',
         {
             connector : pomelo.connectors.sioconnector,

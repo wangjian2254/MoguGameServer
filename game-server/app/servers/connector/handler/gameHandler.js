@@ -57,9 +57,12 @@ handler.addRoom = function(msg, session, next) {
     var self = this;
     var roomid = msg.roomid;
     var appcode = msg.appcode;
-    var username = msg.username
+    var username = msg.username;
 
     var sessionService = self.app.get('sessionService');
+    if(!session.uid&&sessionService.getByUid(username)){
+        sessionService.kickByUid(username);
+    }
     //第一次登陆
     if( ! sessionService.getByUid(username)) {
         session.bind(username);
@@ -160,6 +163,9 @@ handler.addRoomList = function(msg, session, next) {
     var appcode = msg.appcode;//appcode
     var username = msg.username;
     var sessionService = self.app.get('sessionService');
+    if(!session.uid&&sessionService.getByUid(username)){
+        sessionService.kickByUid(username);
+    }
     //第一次登陆
     if( ! sessionService.getByUid(username)) {
         session.bind(username);

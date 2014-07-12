@@ -26,6 +26,7 @@ SyncRoomMembers.prototype.start = function(cb){
             for(var appcode in self.app.game){
                 var channel = self.channelService.getChannel(appcode, false);
                 var sid= self.app.get('serverId');
+                var roommap={};
                 if( !! channel && channel.getMembers().length>0) {
 
                     for(var username in self.app.roomlisten){
@@ -33,6 +34,10 @@ SyncRoomMembers.prototype.start = function(cb){
                         var roomlist=[];
                         for(var i=0;i<self.app.roomlisten[username].length;i++){
                             var roomid=self.app.roomlisten[username][i];
+                            if(roommap[roomid]){
+                                roomlist.push(roommap[roomid]);
+                                continue;
+                            }
                             var roomchannel = self.channelService.getChannel(roomid,false);
                             if(roomchannel&&roomchannel.getMembers().length>0){
                                 var status = self.app.get('gameroomstatus')[roomid];
@@ -44,10 +49,19 @@ SyncRoomMembers.prototype.start = function(cb){
                                     roomid:roomid,
                                     users:roomchannel.getMembers()
                                 }
+                                roommap[roomid]=room;
                                 roomlist.push(room);
                                 for(var u in roomchannel.getMembers()){
                                     ulist.push(roomchannel.getMembers()[u]);
                                 }
+                            }else{
+                                var room={
+                                    status:'stop',
+                                    roomid:roomid,
+                                    users:[]
+                                }
+                                roommap[roomid]=room;
+                                roomlist.push(room);
                             }
                         }
                         self.app.roomlisten[username]=[];
