@@ -79,18 +79,23 @@ handler.addRoom = function(msg, session, next) {
             console.error('set room for session service failed! error is : %j', err.stack);
         }
     });
-
-    if(this.app.get('gameroomstatus')[msg.roomid]=="playing"){
-        next(null,{
-            code:500,
-            route:'addRoom',
-            message:"房间正在游戏中，无法进入。"
-        });
-        return;
-    }
-
     var channel = this.channelService.getChannel(roomid, true);
     var users = channel.getMembers();
+
+    for(var i=0;i<users.length;i++){
+        if(this.app.gameuserstatus[users[i]]=='playing'){
+            next(null,{
+                code:500,
+                route:'addRoom',
+                message:"房间正在游戏中，无法进入。"
+            });
+            return;
+        }
+    }
+
+
+
+
     if(users.indexOf(username)>=0){
         next(null, {
             code:200,
@@ -302,12 +307,34 @@ handler.quickGame = function(msg,session,next){
             });
             return;
         } else {
-            for(var i=roominfo.roomlist.length-1;i>=0;i--){
-                if(!self.app.get('gameroomstatus')[roominfo.roomlist[i]['spaceid']]||self.app.get('gameroomstatus')[roominfo.roomlist[i]['spaceid']]!='stop'){
+            var roomlist=roominfo.roomlist;
+            //roomlist[i]['spaceid']
+            for(var i=roomlist.length-1;i>=0;i--){
+                var channel = this.channelService.getChannel(roomlist[i]['spaceid'], false);
+                if(channel){
+                    if(channel.getMembers().length<6){
+                        var users = channel.getMembers();
+                        var f=false;
+                        for(var i=0;i<users.length;i++){
+                            if(this.app.gameuserstatus[users[i]]=='playing'){
+                                f=true;
+                                break;
+                            }
+                        }
+                        if(!f){
+                            next(null,{
+                                route:'quickGame',
+                                code:200,
+                                roomid:roomlist[i]['spaceid']
+                            });
+                            return;
+                        }
+                    }
+                }else{
                     next(null,{
                         route:'quickGame',
                         code:200,
-                        roomid:roominfo.roomlist[i]['spaceid']
+                        roomid:roomlist[i]['spaceid']
                     });
                     return;
                 }
@@ -315,7 +342,7 @@ handler.quickGame = function(msg,session,next){
             next(null,{
                 route:'quickGame',
                 code:200,
-                roomid:roominfo.roomlist[roominfo.roomlist.length]['spaceid']
+                roomid:roomlist[roomlist.length-1]['spaceid']
             });
             return;
         }
@@ -341,6 +368,7 @@ var onUserLeave = function(app, session) {
     // leave channel
     var roomid = session.get('roomid');
     if(roomid) {
+        delete this.app.gameuserstatus[session.uid];
         var channel = app.get('channelService').getChannel(roomid, false);
         // leave channel
         if( !! channel) {
@@ -352,6 +380,25 @@ var onUserLeave = function(app, session) {
                 user: session.uid
             };
             channel.pushMessage(param);
+
+            var users = channel.getMembers();
+
+            var s='stop';
+            for(var i=0;i<users.length;i++){
+                if(this.app.gameuserstatus[users[i]]=='playing'){
+                    s='playing';
+                    break;
+                }
+            }
+            if(channel2){
+                var param = {
+                    code:200,
+                    route: 'roomStatusChanged',
+                    status:s,
+                    roomid:roomid
+                };
+                channel2.pushMessage(param);
+            }
         }
 
         if(!!channel2){
@@ -364,15 +411,10 @@ var onUserLeave = function(app, session) {
             };
             channel2.pushMessage(param2);
         }
-        if(channel2&&channel2.getMembers().length==0){
-            var param = {
-                code:200,
-                route: 'roomStatusChanged',
-                status:'stop',
-                roomid:roomid
-            };
-            channel2.pushMessage(param);
-        }
+
+
+
+
 
         if(app.get('gameroom')[roomid]&& typeof  app.get('gameroom')[roomid][session.uid] == "undefined"){
             try{
@@ -381,18 +423,7 @@ var onUserLeave = function(app, session) {
                 console.error(err);
             }
 
-            if(app.get('gameroomstatus')[roomid]=='full'){
-                app.get('gameroomstatus')[roomid]='stop';
-                if(channel2){
-                    var param = {
-                        code:200,
-                        route: 'roomStatusChanged',
-                        status:'stop',
-                        roomid:roomid
-                    };
-                    channel2.pushMessage(param);
-                }
-            }
+
 
             var gameroom = app.get('gameroom');
             var f=true;
@@ -506,12 +537,19 @@ handler.getMembersByRoom = function(msg,session,next){
     if(hasOnline(msg,session,next,this.app)){
         return;
     }
-    var status = this.app.get('gameroomstatus')[msg.roomid];
     var channel = this.channelService.getChannel(msg.roomid, false);
-    if(!status){
-        status='stop';
-    }
+
     if( !! channel) {
+        var users = channel.getMembers();
+
+        var s='stop';
+        for(var i=0;i<users.length;i++){
+            if(this.app.gameuserstatus[users[i]]=='playing'){
+                s='playing';
+                break;
+            }
+        }
+
         gameUserDao.queryGameUsersByUsernames(msg.appcode,channel.getMembers(),function(err,users){
             if(err){
                 next(null,{
@@ -525,7 +563,7 @@ handler.getMembersByRoom = function(msg,session,next){
                     code:200,
                     route:'getMembersByRoom',
                     room:{
-                        status:status,
+                        status:s,
                         roomid:msg.roomid,
                         users:users,
                         appcode:msg.appcode
@@ -538,7 +576,7 @@ handler.getMembersByRoom = function(msg,session,next){
             code:200,
             route:'getMembersByRoom',
             room:{
-                status:status,
+                status:'stop',
                 roomid:msg.roomid,
                 users:[],
                 appcode:msg.appcode

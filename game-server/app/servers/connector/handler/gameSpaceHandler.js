@@ -44,6 +44,8 @@ handler.quiteRoom = function(msg,session,next){
             user: session.uid
         };
         channel.pushMessage(param);
+        session.set('roomid',null);
+        session.push('roomid');
     }
 
     if(!!channel2){
@@ -57,22 +59,24 @@ handler.quiteRoom = function(msg,session,next){
         channel2.pushMessage(param2);
     }
     if(msg.roomid&&this.app.get('gameroom')[msg.roomid]&& typeof  this.app.get('gameroom')[msg.roomid][session.uid] == "undefined"){
-        delete this.app.get('gameroom')[msg.roomid][session.uid]
-        if(this.app.get('gameroomstatus')[msg.roomid]=='full'){
-            this.app.get('gameroomstatus')[msg.roomid]='stop';
-            // 所有人局分都上传完了，就是一局结束了
-            this.app.get('gameroomstatus')[msg.roomid]="stop";
+        delete this.app.get('gameroom')[msg.roomid][session.uid];
 
-            if(channel2){
-                var param = {
-                    code:200,
-                    route: 'roomStatusChanged',
-                    status:'stop',
-                    roomid:msg.roomid
-                };
-                channel2.pushMessage(param);
+    }
+    if(channel.getMembers().length<6&&channel2){
+        var s='stop';
+        for(var i=0;i<channel.getMembers().length;i++){
+            if(this.app.gameuserstatus[channel.getMembers()[i]]=='playing'){
+               s='playing';
+                break;
             }
         }
+        var param = {
+            code:200,
+            route: 'roomStatusChanged',
+            status:s,
+            roomid:msg.roomid
+        };
+        channel2.pushMessage(param);
     }
 
 
@@ -135,22 +139,10 @@ handler.getEndPoint = function(msg, session, next) {
         return;
     }
     // 如果有人退出了游戏，则新的房主，访问此接口，确保，局分处理完成
+    var channelGame = this.channelService.getChannel( msg.appcode, false);
+    var channelRoom = this.channelService.getChannel( msg.roomid, false);
     var gameroom = this.app.get('gameroom');
     if(typeof  gameroom[msg.roomid] == "undefined"){
-        this.app.get('gameroomstatus')[msg.roomid]="stop";
-        var channel = this.channelService.getChannel( msg.appcode, false);
-
-        if(channel){
-            var param = {
-                code:200,
-                route: 'roomStatusChanged',
-                status:'stop',
-                roomid:msg.roomid
-            };
-            channel.pushMessage(param);
-        }
-
-//        this.app.rpc.chat.roomMemberRemote.changeRoomStatus(session, msg.appcode,"stop",msg.roomid, this.app.get('serverId'), false,null);
         next(null, {
             code:200,
             route:'replaygame'// 可以开始新游戏了
@@ -160,6 +152,33 @@ handler.getEndPoint = function(msg, session, next) {
     if(gameroom[msg.roomid][msg.username]==null){
         gameroom[msg.roomid][msg.username]=this.app.get('gameroompoint')[msg.roomid][msg.username];
     }
+
+    if(channelGame){
+        var s='stop';
+        if(channelRoom){
+            if(channelRoom.getMembers().length<6){
+                for(var i=0;i<channelRoom.getMembers().length;i++){
+                    if(this.app.gameuserstatus[channelRoom.getMembers()[i]]=='playing'){
+                        s='playing';
+                        break;
+                    }
+                }
+            }
+            if(s=='stop'&&channelRoom.getMembers().length==6){
+                s='full';
+            }
+        }
+        var param = {
+            code:200,
+            route: 'roomStatusChanged',
+            status:s,
+            roomid:msg.roomid
+        };
+        channelGame.pushMessage(param);
+    }
+
+
+
     var f=true;
     for(var p in gameroom[msg.roomid]){
         if(gameroom[msg.roomid][p]===null){
@@ -169,22 +188,10 @@ handler.getEndPoint = function(msg, session, next) {
     }
     if(f){
         // 所有人局分都上传完了，就是一局结束了
-        this.app.get('gameroomstatus')[msg.roomid]="stop";
-        var channel2 = this.channelService.getChannel( msg.appcode, false);
 
-        if(channel2){
-            var param = {
-                code:200,
-                route: 'roomStatusChanged',
-                status:'stop',
-                roomid:msg.roomid
-            };
-            channel2.pushMessage(param);
-        }
 
 //        this.app.rpc.chat.roomMemberRemote.changeRoomStatus(session, msg.appcode,"stop",msg.roomid, this.app.get('serverId'), false,null);
         //
-        var channel = this.channelService.getChannel(msg.roomid, false);
         var postparam={game:msg.appcode};
         var i=0;
         for(var p in gameroom[msg.roomid]){
@@ -209,14 +216,14 @@ handler.getEndPoint = function(msg, session, next) {
                     }
                 }
             }
-            if(!!channel){
+            if(!!channelRoom){
                 var param = {
                     code:200,
                     roomid: msg.roomid,
                     users:users,
                     endpoints:gameroom[msg.roomid]
                 };
-                channel.pushMessage('onEndPoint', param);
+                channelRoom.pushMessage('onEndPoint', param);
             }
         });
 
@@ -253,10 +260,11 @@ handler.cleanPoint = function(msg, session, next) {
     if(hasOnline(msg,session,next,this.app)){
         return;
     }
-    this.app.get('gameroom')[msg.roomid]={};
-    for(var i=0;i<msg.members;i++){
-        this.app.get('gameroom')[msg.roomid][msg.members[i]]=null;
-    }
+    delete this.app.get('gameroom')[msg.roomid];
+    delete this.app.get('gameroompoint')[msg.roomid];
+//    for(var i=0;i<msg.members;i++){
+//        this.app.get('gameroom')[msg.roomid][msg.members[i]]=null;
+//    }
     next(null, {
         code:200,
         route:'cleanPoint'
@@ -271,17 +279,23 @@ handler.changeRoomStatus = function(msg, session, next){
     if(hasOnline(msg,session,next,this.app)){
         return;
     }
-    this.app.get('gameroomstatus')[msg.roomid]=msg.status;
-    var channel = this.channelService.getChannel(msg.appcode, false);
-
-    if(channel){
+    var channelGame = this.channelService.getChannel(msg.appcode, false);
+    var channelRoom = this.channelService.getChannel( msg.roomid, false);
+    if(channelGame){
         var param = {
             code:200,
             route: 'roomStatusChanged',
             status:msg.status,
             roomid:msg.roomid
         };
-        channel.pushMessage(param);
+        channelGame.pushMessage(param);
+
+        if(channelRoom){
+            for(var i=0;i<channelRoom.getMembers().length;i++){
+                this.app.gameuserstatus[channelRoom.getMembers()[i]]==msg.status;
+            }
+        }
+
     }
 
 //    this.app.rpc.chat.roomMemberRemote.changeRoomStatus(session, msg.appcode,msg.status,msg.roomid, this.app.get('serverId'), false,null);

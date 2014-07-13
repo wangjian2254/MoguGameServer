@@ -39,13 +39,23 @@ SyncRoomMembers.prototype.start = function(cb){
                                 continue;
                             }
                             var roomchannel = self.channelService.getChannel(roomid,false);
-                            if(roomchannel&&roomchannel.getMembers().length>0){
-                                var status = self.app.get('gameroomstatus')[roomid];
-                                if(!status){
-                                    status='stop';
+                            var s='stop';
+                            if(roomchannel){
+                                var users=roomchannel.getMembers();
+                                for(var i=0;i<users.length;i++){
+                                    if(this.app.gameuserstatus[users[i]]=='playing'){
+                                        s='playing';
+                                        break;
+                                    }
                                 }
+                                if(s=='stop'&&users.length==6){
+                                    s='full';
+                                }
+                            }
+                            if(roomchannel&&roomchannel.getMembers().length>0){
+
                                 var room={
-                                    status:status,
+                                    status:s,
                                     roomid:roomid,
                                     users:roomchannel.getMembers()
                                 }
@@ -56,7 +66,7 @@ SyncRoomMembers.prototype.start = function(cb){
                                 }
                             }else{
                                 var room={
-                                    status:'stop',
+                                    status:s,
                                     roomid:roomid,
                                     users:[]
                                 }
