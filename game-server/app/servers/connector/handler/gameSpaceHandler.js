@@ -105,7 +105,11 @@ handler.uploadPoint = function(msg, session, next) {
         from: msg.username
     };
     var channel = this.channelService.getChannel(msg.roomid, true);
-
+    var gameroom = this.app.get('gameroompoint');
+    if(typeof  gameroom[msg.roomid] == "undefined"){
+        gameroom[msg.roomid]={};
+    }
+    gameroom[msg.roomid][msg.username]=msg.content;
     channel.pushMessage('onChat', param);
 //    this.app.rpc.chat.chatRemote.uploadPoint(session, msg.roomid,session.get('username'),msg.content, this.app.get('serverId'), null);
     next(null, {
@@ -154,7 +158,7 @@ handler.getEndPoint = function(msg, session, next) {
         return;
     }
     if(gameroom[msg.roomid][msg.username]==null){
-        delete gameroom[msg.roomid][msg.username];
+        gameroom[msg.roomid][msg.username]=this.app.get('gameroompoint')[msg.roomid][msg.username];
     }
     var f=true;
     for(var p in gameroom[msg.roomid]){
@@ -190,6 +194,7 @@ handler.getEndPoint = function(msg, session, next) {
         }
         postparam['num']=i;
         var users=[];
+        gameroom[msg.roomid]=null;
         request.post(settings.moguuploadpointurl, {form:postparam},function(error,response,body){
             if(!error && response.statusCode == 200){
 //                console.log(fs.realpathSync('.'));

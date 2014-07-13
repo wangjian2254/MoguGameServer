@@ -3,6 +3,8 @@
  */
 var roomDao = require('../../../dao/roomDao');
 var gameUserDao = require('../../../dao/gameUserDao');
+var settings = require('../../../../config/settings.json');
+var request = require('request');
 module.exports = function(app) {
     return new Handler(app);
 };
@@ -337,9 +339,8 @@ var onUserLeave = function(app, session) {
         channel2.leave(session.uid,  app.get('serverId'));
     }
     // leave channel
-
-    if(session.get('roomid')) {
-        var roomid=session.get('roomid');
+    var roomid = session.get('roomid');
+    if(roomid) {
         var channel = app.get('channelService').getChannel(roomid, false);
         // leave channel
         if( !! channel) {
@@ -368,30 +369,79 @@ var onUserLeave = function(app, session) {
                 code:200,
                 route: 'roomStatusChanged',
                 status:'stop',
-                roomid:session.get('roomid')
+                roomid:roomid
             };
             channel2.pushMessage(param);
         }
 
-        if(app.get('gameroom')[session.get('roomid')]&& typeof  app.get('gameroom')[session.get('roomid')][session.uid] == "undefined"){
+        if(app.get('gameroom')[roomid]&& typeof  app.get('gameroom')[roomid][session.uid] == "undefined"){
             try{
-                delete app.get('gameroom')[session.get('roomid')][session.uid]
+                app.get('gameroom')[roomid][session.uid]=app.get('gameroompoint')[roomid][session.uid];
             }catch (err){
                 console.error(err);
             }
 
-            if(app.get('gameroomstatus')[session.get('roomid')]=='full'){
-                app.get('gameroomstatus')[session.get('roomid')]='stop';
+            if(app.get('gameroomstatus')[roomid]=='full'){
+                app.get('gameroomstatus')[roomid]='stop';
                 if(channel2){
                     var param = {
                         code:200,
                         route: 'roomStatusChanged',
                         status:'stop',
-                        roomid:session.get('roomid')
+                        roomid:roomid
                     };
                     channel2.pushMessage(param);
                 }
             }
+
+            var gameroom = app.get('gameroom');
+            var f=true;
+            for(var p in gameroom[roomid]){
+                if(gameroom[roomid][p]===null){
+                    f=false;
+                    break;
+                }
+            }
+            if(f){
+
+                var postparam={game:appcode};
+                var i=0;
+                for(var p in gameroom[roomid]){
+                    postparam['username'+i]=p;
+                    postparam['point'+i]=gameroom[roomid][p];
+                    i++;
+                }
+                postparam['num']=i;
+                var users=[];
+                gameroom[roomid]=null;
+                request.post(settings.moguuploadpointurl, {form:postparam},function(error,response,body){
+                    if(!error && response.statusCode == 200){
+//                console.log(fs.realpathSync('.'));
+                        var result = JSON.parse(body);
+                        if(result.success){
+                            for(var i=0;i<result.result.length;i++){
+                                gameUserDao.updateGameUserPoint(appcode,result.result[i],function(err,u){
+                                    if(!err){
+                                        users.push(u);
+                                    }
+                                });
+                            }
+                        }
+                    }
+                    if(!!channel){
+                        var param = {
+                            code:200,
+                            roomid: roomid,
+                            users:users,
+                            endpoints:gameroom[roomid]
+                        };
+                        channel.pushMessage('onEndPoint', param);
+                    }
+                });
+                return;
+            }
+
+
         }
     }
     try{

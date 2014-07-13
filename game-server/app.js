@@ -30,8 +30,8 @@ app.configure('production|development', 'connector', function(){
             //websocket, htmlfile, xhr-polling, jsonp-polling, flashsocket
             transports : ['websocket'],
             heartbeats : true,
-            closeTimeout : 60,
-            heartbeatTimeout : 60,
+            closeTimeout : 40,
+            heartbeatTimeout : 40,
             heartbeatInterval : 25
         });
 
@@ -40,6 +40,7 @@ app.configure('production|development', 'connector', function(){
     app.set('roomlisten',{},true);
     app.set('game',{},true);
     app.set('gameroom',{},true);
+    app.set('gameroompoint',{},true);
     app.set('gameroomstatus',{},true);
     app.load(syncRommMembers,{interval:2000*1});
 });
