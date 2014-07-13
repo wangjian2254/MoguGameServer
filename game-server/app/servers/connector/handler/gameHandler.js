@@ -363,8 +363,17 @@ var onUserLeave = function(app, session) {
             };
             channel2.pushMessage(param2);
         }
+        if(channel2&&channel2.getMembers().length==0){
+            var param = {
+                code:200,
+                route: 'roomStatusChanged',
+                status:'stop',
+                roomid:session.get('roomid')
+            };
+            channel2.pushMessage(param);
+        }
 
-        if(app.get('gameroom')[session.get('roomid')]&& typeof  app.get('gameroom')[session.get('roomid')][session.uid]){
+        if(app.get('gameroom')[session.get('roomid')]&& typeof  app.get('gameroom')[session.get('roomid')][session.uid] == "undefined"){
             try{
                 delete app.get('gameroom')[session.get('roomid')][session.uid]
             }catch (err){
@@ -373,6 +382,15 @@ var onUserLeave = function(app, session) {
 
             if(app.get('gameroomstatus')[session.get('roomid')]=='full'){
                 app.get('gameroomstatus')[session.get('roomid')]='stop';
+                if(channel2){
+                    var param = {
+                        code:200,
+                        route: 'roomStatusChanged',
+                        status:'stop',
+                        roomid:session.get('roomid')
+                    };
+                    channel2.pushMessage(param);
+                }
             }
         }
     }

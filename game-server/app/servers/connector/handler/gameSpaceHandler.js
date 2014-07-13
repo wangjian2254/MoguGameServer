@@ -31,12 +31,8 @@ handler.quiteRoom = function(msg,session,next){
     if(hasOnline(msg,session,next,this.app)){
         return;
     }
-    if(msg.roomid&&this.app.get('gameroom')[msg.roomid]&& typeof  this.app.get('gameroom')[msg.roomid][session.uid]){
-        delete this.app.get('gameroom')[msg.roomid][session.uid]
-        if(this.app.get('gameroomstatus')[msg.roomid]=='full'){
-            this.app.get('gameroomstatus')[msg.roomid]='stop';
-        }
-    }
+
+    var channel2 = this.channelService.getChannel(msg.appcode, false);
     var channel = this.channelService.getChannel(msg.roomid, false);
     // leave channel
     if( !! channel) {
@@ -49,7 +45,7 @@ handler.quiteRoom = function(msg,session,next){
         };
         channel.pushMessage(param);
     }
-    var channel2 = this.channelService.getChannel(msg.appcode, false);
+
     if(!!channel2){
         var param2 = {
             code:200,
@@ -60,6 +56,25 @@ handler.quiteRoom = function(msg,session,next){
         };
         channel2.pushMessage(param2);
     }
+    if(msg.roomid&&this.app.get('gameroom')[msg.roomid]&& typeof  this.app.get('gameroom')[msg.roomid][session.uid] == "undefined"){
+        delete this.app.get('gameroom')[msg.roomid][session.uid]
+        if(this.app.get('gameroomstatus')[msg.roomid]=='full'){
+            this.app.get('gameroomstatus')[msg.roomid]='stop';
+            // 所有人局分都上传完了，就是一局结束了
+            this.app.get('gameroomstatus')[msg.roomid]="stop";
+
+            if(channel2){
+                var param = {
+                    code:200,
+                    route: 'roomStatusChanged',
+                    status:'stop',
+                    roomid:msg.roomid
+                };
+                channel2.pushMessage(param);
+            }
+        }
+    }
+
 
 
 //    this.app.rpc.chat.chatRemote.kick(session, msg.roomid,session.uid,msg.appcode, this.app.get('serverId'), null);
