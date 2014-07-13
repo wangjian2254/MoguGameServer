@@ -108,6 +108,7 @@ handler.uploadPoint = function(msg, session, next) {
         msg: msg.content,
         from: msg.username
     };
+    this.app.gameuserstatus[msg.username]='playing';
     var channel = this.channelService.getChannel(msg.roomid, true);
     var gameroom = this.app.get('gameroompoint');
     if(typeof  gameroom[msg.roomid] == "undefined"){
@@ -138,6 +139,7 @@ handler.getEndPoint = function(msg, session, next) {
     if(hasOnline(msg,session,next,this.app)){
         return;
     }
+    this.app.gameuserstatus[msg.username]='stop';
     // 如果有人退出了游戏，则新的房主，访问此接口，确保，局分处理完成
     var channelGame = this.channelService.getChannel( msg.appcode, false);
     var channelRoom = this.channelService.getChannel( msg.roomid, false);
@@ -262,6 +264,7 @@ handler.cleanPoint = function(msg, session, next) {
     }
     delete this.app.get('gameroom')[msg.roomid];
     delete this.app.get('gameroompoint')[msg.roomid];
+
 //    for(var i=0;i<msg.members;i++){
 //        this.app.get('gameroom')[msg.roomid][msg.members[i]]=null;
 //    }

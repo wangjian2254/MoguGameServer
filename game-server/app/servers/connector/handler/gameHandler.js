@@ -360,6 +360,7 @@ var onUserLeave = function(app, session) {
     if(!session || !session.uid) {
         return;
     }
+    app.gameuserstatus[session.uid]='stop';
     var appcode = session.get('room');
     var channel2 = app.get('channelService').getChannel(appcode, false);
     if( !! channel2) {
@@ -368,7 +369,7 @@ var onUserLeave = function(app, session) {
     // leave channel
     var roomid = session.get('roomid');
     if(roomid) {
-        delete this.app.gameuserstatus[session.uid];
+        delete app.gameuserstatus[session.uid];
         var channel = app.get('channelService').getChannel(roomid, false);
         // leave channel
         if( !! channel) {
@@ -385,7 +386,7 @@ var onUserLeave = function(app, session) {
 
             var s='stop';
             for(var i=0;i<users.length;i++){
-                if(this.app.gameuserstatus[users[i]]=='playing'){
+                if(app.gameuserstatus[users[i]]=='playing'){
                     s='playing';
                     break;
                 }
