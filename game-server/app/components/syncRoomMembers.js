@@ -24,6 +24,7 @@ SyncRoomMembers.prototype.start = function(cb){
     var timerfun = function(){
         try{
             for(var appcode in self.app.game){
+                console.log(appcode);
                 var channel = self.channelService.getChannel(appcode, false);
                 var sid= self.app.get('serverId');
                 var roommap={};
@@ -61,8 +62,8 @@ SyncRoomMembers.prototype.start = function(cb){
                                 }
                                 roommap[roomid]=room;
                                 roomlist.push(room);
-                                for(var u in roomchannel.getMembers()){
-                                    ulist.push(roomchannel.getMembers()[u]);
+                                for(var i=0;i<roomchannel.getMembers().length;i++){
+                                    ulist.push(roomchannel.getMembers()[i]);
                                 }
                             }else{
                                 var room={
@@ -100,6 +101,7 @@ SyncRoomMembers.prototype.start = function(cb){
             }
         }catch (err){
             console.error(err);
+            console.log('syncRoomMembers');
         }
 
 
