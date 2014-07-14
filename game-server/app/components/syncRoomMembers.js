@@ -37,6 +37,11 @@ SyncRoomMembers.prototype.start = function(cb){
                             var roomid=self.app.roomlisten[username][i];
                             if(roommap[roomid]){
                                 roomlist.push(roommap[roomid]);
+
+                                for(var i=0;i<roommap[roomid].users.length;i++){
+                                    ulist.push(roommap[roomid].users[i]);
+                                }
+
                                 continue;
                             }
                             var roomchannel = self.channelService.getChannel(roomid,false);
@@ -62,8 +67,8 @@ SyncRoomMembers.prototype.start = function(cb){
                                 }
                                 roommap[roomid]=room;
                                 roomlist.push(room);
-                                for(var i=0;i<roomchannel.getMembers().length;i++){
-                                    ulist.push(roomchannel.getMembers()[i]);
+                                for(var i=0;i<roommap[roomid].users.length;i++){
+                                    ulist.push(roommap[roomid].users[i]);
                                 }
                             }else{
                                 var room={
