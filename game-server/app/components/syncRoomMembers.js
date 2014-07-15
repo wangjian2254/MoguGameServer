@@ -24,8 +24,8 @@ SyncRoomMembers.prototype.start = function(cb){
     var timerfun = function(){
         try{
             for(var appcode in self.app.game){
-                console.log(appcode);
                 var channel = self.channelService.getChannel(appcode, false);
+
                 var sid= self.app.get('serverId');
                 var roommap={};
                 if( !! channel && channel.getMembers().length>0) {
@@ -38,8 +38,8 @@ SyncRoomMembers.prototype.start = function(cb){
                             if(roommap[roomid]){
                                 roomlist.push(roommap[roomid]);
 
-                                for(var i=0;i<roommap[roomid].users.length;i++){
-                                    ulist.push(roommap[roomid].users[i]);
+                                for(var j=0;j<roommap[roomid].users.length;j++){
+                                    ulist.push(roommap[roomid].users[j]);
                                 }
 
                                 continue;
@@ -49,7 +49,7 @@ SyncRoomMembers.prototype.start = function(cb){
                             if(roomchannel){
                                 var users=roomchannel.getMembers();
                                 for(var i=0;i<users.length;i++){
-                                    if(this.app.gameuserstatus[users[i]]=='playing'){
+                                    if(self.app.gameuserstatus[users[i]]=='playing'){
                                         s='playing';
                                         break;
                                     }
@@ -81,28 +81,34 @@ SyncRoomMembers.prototype.start = function(cb){
                             }
                         }
                         self.app.roomlisten[username]=[];
-                        if(ulist.length>0){
-                            gameUserDao.queryGameUsersByUsernames(appcode,ulist,function(err,users){
-                                if(err){
+                        if(roomlist.length>0) {
+                            gameUserDao.queryGameUsersByUsernames(appcode, ulist, function (err, users) {
+                                if (err) {
 
-                                    console.error("查询用户集错误："+JSON.stringify(ulist));
+                                    console.error("查询用户集错误：" + JSON.stringify(ulist));
 
-                                }else{
-                                    var param={
-                                        code:200,
-                                        route:'getMembersByRoom',
-                                        appcode:appcode,
-                                        users:users,
-                                        rooms:roomlist
+                                } else {
+                                    var param = {
+                                        code: 200,
+                                        route: 'getMembersByRoom',
+                                        appcode: appcode,
+                                        users: users,
+                                        rooms: roomlist
                                     };
-                                    self.channelService.pushMessageByUids(param,[{uid:username,sid:sid}]);
-                                    console.log('成功推送：'+username);
+                                    self.channelService.pushMessageByUids(param, [
+                                        {uid: username, sid: sid}
+                                    ]);
+                                    console.log('成功推送：' + username);
                                 }
                             });
+//                        }
                         }
-
+                        delete ulist;
+                        delete roomlist;
                     }
                 }
+                delete roommap;
+
             }
         }catch (err){
             console.error(err);

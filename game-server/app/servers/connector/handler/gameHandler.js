@@ -525,6 +525,7 @@ handler.addRoomListener = function(msg,session,next){
     }
 
     this.app.roomlisten[msg.username]=msg.roomids;
+    console.log(this.app.roomlisten);
 
     next(null,{
         code:200,
