@@ -48,8 +48,8 @@ SyncRoomMembers.prototype.start = function(cb){
                             var s='stop';
                             if(roomchannel){
                                 var users=roomchannel.getMembers();
-                                for(var i=0;i<users.length;i++){
-                                    if(self.app.gameuserstatus[users[i]]=='playing'){
+                                for(var k=0;i<users.length;k++){
+                                    if(self.app.gameuserstatus[users[k]]=='playing'){
                                         s='playing';
                                         break;
                                     }
@@ -67,8 +67,8 @@ SyncRoomMembers.prototype.start = function(cb){
                                 }
                                 roommap[roomid]=room;
                                 roomlist.push(room);
-                                for(var i=0;i<roommap[roomid].users.length;i++){
-                                    ulist.push(roommap[roomid].users[i]);
+                                for(var m=0;m<roommap[roomid].users.length;m++){
+                                    ulist.push(roommap[roomid].users[m]);
                                 }
                             }else{
                                 var room={
