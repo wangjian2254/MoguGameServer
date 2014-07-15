@@ -48,7 +48,7 @@ SyncRoomMembers.prototype.start = function(cb){
                             var s='stop';
                             if(roomchannel){
                                 var users=roomchannel.getMembers();
-                                for(var k=0;i<users.length;k++){
+                                for(var k=0;k<users.length;k++){
                                     if(self.app.gameuserstatus[users[k]]=='playing'){
                                         s='playing';
                                         break;
