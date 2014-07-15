@@ -105,6 +105,7 @@ handler.uploadPoint = function(msg, session, next) {
     }
     var param = {
         code:200,
+        route:'onChat',
         msg: msg.content,
         from: msg.username
     };
