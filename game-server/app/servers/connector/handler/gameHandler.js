@@ -58,7 +58,7 @@ handler.addRoom = function(msg, session, next) {
     }
     session.set('room', appcode);
     if(!!session.get('roomid')&&session.get('roomid')!=msg.roomid){
-        gameutil.quiteRoom(msg,session,session.get('roomid'),app,self.channelService);
+        gameutil.quiteRoom(msg,session,session.get('roomid'),self.app,self.channelService);
     }
     session.set('roomid', roomid);
     session.pushAll(function(err) {
