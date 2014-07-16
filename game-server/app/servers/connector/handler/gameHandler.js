@@ -57,7 +57,7 @@ handler.addRoom = function(msg, session, next) {
         session.on('closed', onUserLeave.bind(null, self.app));
     }
     session.set('room', appcode);
-    if(!!session.get('roomid')){
+    if(!!session.get('roomid')&&session.get('roomid')!=msg.roomid){
         gameutil.quiteRoom(msg,session,session.get('roomid'),app,self.channelService);
     }
     session.set('roomid', roomid);
