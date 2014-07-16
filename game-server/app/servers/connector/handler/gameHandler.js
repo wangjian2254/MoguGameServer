@@ -5,6 +5,7 @@ var roomDao = require('../../../dao/roomDao');
 var gameUserDao = require('../../../dao/gameUserDao');
 var settings = require('../../../../config/settings.json');
 var request = require('request');
+var gameutil = require('./../../../util/gameUtil');
 module.exports = function(app) {
     return new Handler(app);
 };
@@ -16,27 +17,10 @@ var Handler = function(app) {
 
 var handler = Handler.prototype;
 
-function hasOnline(msg,session,next,app){
-    var sessionService = app.get('sessionService');
-    if(!sessionService.getByUid(msg.username)) {
-        next(null, {
-            route:'disconnect',
-            code: 404
-        });
-        return true;
-    }else if(!session.uid){
-        next(null, {
-            route:'disconnect',
-            message:'登录异常，请重新登录',
-            code: 404
-        });
-        return true;
-    }
-    return false;
-}
+
 
 handler.checkOnLine = function(msg,session,next){
-    if(hasOnline(msg,session,next,this.app)){
+    if(gameutil.hasOnline(msg,session,next,this.app)){
         return;
     }
     next(null, {
@@ -73,6 +57,9 @@ handler.addRoom = function(msg, session, next) {
         session.on('closed', onUserLeave.bind(null, self.app));
     }
     session.set('room', appcode);
+    if(!!session.get('roomid')){
+        gameutil.quiteRoom(msg,session,session.get('roomid'),app,self.channelService);
+    }
     session.set('roomid', roomid);
     session.pushAll(function(err) {
         if(err) {
@@ -165,7 +152,6 @@ handler.addRoom = function(msg, session, next) {
 
 
 handler.addRoomList = function(msg, session, next) {
-    console.log('0');
     this.app.game[msg.appcode]=true;
     var self = this;
     var appcode = msg.appcode;//appcode
@@ -257,7 +243,7 @@ var query = function(start,limit,roominfo,app,username){
 }
 
 handler.queryRoomList = function(msg,session,next){
-    if(hasOnline(msg,session,next,this.app)){
+    if(gameutil.hasOnline(msg,session,next,this.app)){
         return;
     }
     var self = this;
@@ -291,7 +277,7 @@ handler.queryRoomList = function(msg,session,next){
 }
 
 handler.quickGame = function(msg,session,next){
-    if(hasOnline(msg,session,next,this.app)){
+    if(gameutil.hasOnline(msg,session,next,this.app)){
         return;
     }
     var self = this;
@@ -489,7 +475,7 @@ var onUserLeave = function(app, session) {
 
 
 handler.quiteRoomList = function(msg,session,next){
-    if(hasOnline(msg,session,next,this.app)){
+    if(gameutil.hasOnline(msg,session,next,this.app)){
         return;
     }
 //    this.app.rpc.chat.roomMemberRemote.kick(session, msg.appcode,session.uid, this.app.get('serverId'), null);
@@ -514,7 +500,7 @@ handler.quiteRoomList = function(msg,session,next){
 }
 
 handler.addRoomListener = function(msg,session,next){
-    if(hasOnline(msg,session,next,this.app)){
+    if(gameutil.hasOnline(msg,session,next,this.app)){
         return;
     }
     if(!this.app.roomlisten[msg.username]||this.app.roomlisten[msg.username].length==0){
@@ -536,7 +522,7 @@ handler.addRoomListener = function(msg,session,next){
 
 
 handler.getMembersByRoom = function(msg,session,next){
-    if(hasOnline(msg,session,next,this.app)){
+    if(gameutil.hasOnline(msg,session,next,this.app)){
         return;
     }
     var channel = this.channelService.getChannel(msg.roomid, false);
@@ -614,7 +600,7 @@ handler.getMembersByRoom = function(msg,session,next){
 
 
 handler.getRoomInfoByRoomId = function(msg,session,next){
-    if(hasOnline(msg,session,next,this.app)){
+    if(gameutil.hasOnline(msg,session,next,this.app)){
         return;
     }
     var self = this;

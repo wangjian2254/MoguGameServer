@@ -1,6 +1,7 @@
 var settings = require('../../../../config/settings.json');
 var request = require('request');
 var gameUserDao = require('../../../dao/gameUserDao');
+var gameutil = require('./../../../util/gameUtil');
 module.exports = function(app) {
 	return new Handler(app);
 };
@@ -13,71 +14,14 @@ var Handler = function(app) {
 var handler = Handler.prototype;
 
 
-function hasOnline(msg,session,next,app){
-    var sessionService = app.get('sessionService');
-    if(!sessionService.getByUid(msg.username)) {
-        next(null, {
-            route:'disconnect',
-            code: 404
-        });
-        return true;
-    }
-    return false;
-}
-
 
 
 handler.quiteRoom = function(msg,session,next){
-    if(hasOnline(msg,session,next,this.app)){
+    if(gameutil.hasOnline(msg,session,next,this.app)){
         return;
     }
 
-    var channel2 = this.channelService.getChannel(msg.appcode, false);
-    var channel = this.channelService.getChannel(msg.roomid, false);
-    // leave channel
-    if( !! channel) {
-        channel.leave(msg.username, this.app.get('serverId'));
-        var param = {
-            code:200,
-            route: 'onLeave',
-            roomid:msg.roomid,
-            user: session.uid
-        };
-        channel.pushMessage(param);
-        session.set('roomid',null);
-        session.push('roomid');
-    }
-
-    if(!!channel2){
-        var param2 = {
-            code:200,
-            route: 'memberChanged',
-            changed:'out',
-            user: session.uid,
-            roomid:msg.roomid
-        };
-        channel2.pushMessage(param2);
-    }
-    if(msg.roomid&&this.app.get('gameroom')[msg.roomid]&& typeof  this.app.get('gameroom')[msg.roomid][session.uid] == "undefined"){
-        delete this.app.get('gameroom')[msg.roomid][session.uid];
-
-    }
-    if(channel.getMembers().length<6&&channel2){
-        var s='stop';
-        for(var i=0;i<channel.getMembers().length;i++){
-            if(this.app.gameuserstatus[channel.getMembers()[i]]=='playing'){
-               s='playing';
-                break;
-            }
-        }
-        var param = {
-            code:200,
-            route: 'roomStatusChanged',
-            status:s,
-            roomid:msg.roomid
-        };
-        channel2.pushMessage(param);
-    }
+    gameutil.quiteRoom(msg,session,msg.roomid,app,self.channelService);
 
 
 
@@ -100,7 +44,7 @@ handler.quiteRoom = function(msg,session,next){
  *
  */
 handler.uploadPoint = function(msg, session, next) {
-    if(hasOnline(msg,session,next,this.app)){
+    if(gameutil.hasOnline(msg,session,next,this.app)){
         return;
     }
     var param = {
@@ -125,7 +69,7 @@ handler.uploadPoint = function(msg, session, next) {
 };
 
 handler.uploadEndPoint = function(msg, session, next) {
-    if(hasOnline(msg,session,next,this.app)){
+    if(gameutil.hasOnline(msg,session,next,this.app)){
         return;
     }
     var gameroom = this.app.get('gameroom');
@@ -137,7 +81,7 @@ handler.uploadEndPoint = function(msg, session, next) {
 };
 
 handler.getEndPoint = function(msg, session, next) {
-    if(hasOnline(msg,session,next,this.app)){
+    if(gameutil.hasOnline(msg,session,next,this.app)){
         return;
     }
     this.app.gameuserstatus[msg.username]='stop';
@@ -260,7 +204,7 @@ handler.getEndPoint = function(msg, session, next) {
  */
 
 handler.cleanPoint = function(msg, session, next) {
-    if(hasOnline(msg,session,next,this.app)){
+    if(gameutil.hasOnline(msg,session,next,this.app)){
         return;
     }
     delete this.app.get('gameroom')[msg.roomid];
@@ -280,7 +224,7 @@ handler.cleanPoint = function(msg, session, next) {
 
 
 handler.changeRoomStatus = function(msg, session, next){
-    if(hasOnline(msg,session,next,this.app)){
+    if(gameutil.hasOnline(msg,session,next,this.app)){
         return;
     }
     var channelGame = this.channelService.getChannel(msg.appcode, false);
