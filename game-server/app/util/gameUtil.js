@@ -30,7 +30,7 @@ module.exports.quiteRoom=function(msg,session,oldroomid,app,channelService){
         var param = {
             code:200,
             route: 'onLeave',
-            roomid:msg.roomid,
+            roomid:oldroomid,
             user: session.uid
         };
         channel.pushMessage(param);
