@@ -1,17 +1,17 @@
 {
 	"development": {
-	  "host" : "imopenfire.ccvstgwywbvo.ap-northeast-1.rds.amazonaws.com",
+	  "host" : "rdszuu2u2ebqmvm.mysql.rds.aliyuncs.com",
 		"port" : "3306",
 		"database" : "mogugame",
-		"user" : "openfire",
-		"password" : "05992254wj"
+		"user" : "openfiredb",
+		"password" : "openfiredb"
 	},
 
 	"production": {
-        "host" : "imopenfire.ccvstgwywbvo.ap-northeast-1.rds.amazonaws.com",
+        "host" : "rdszuu2u2ebqmvm.mysql.rds.aliyuncs.com",
         "port" : "3306",
         "database" : "mogugame",
-        "user" : "openfire",
-        "password" : "05992254wj"
+        "user" : "openfiredb",
+        "password" : "12"
 	}
 }
