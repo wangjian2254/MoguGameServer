@@ -258,3 +258,33 @@ handler.changeRoomStatus = function(msg, session, next){
 }
 
 
+/**
+ * 同步游戏房间内的数据
+ * @param msg
+ * @param session
+ * @param next
+ */
+handler.syncGameRoom = function(msg,session,next){
+    if(gameutil.hasOnline(msg,session,next,this.app)){
+        return;
+    }
+    var channelRoom = this.channelService.getChannel( msg.roomid, false);
+    if(channelRoom){
+        var param = {
+            code:200,
+            route: msg.route,
+            json:msg
+        };
+        channelRoom.pushMessage(param);
+
+    }
+
+
+//    this.app.rpc.chat.roomMemberRemote.changeRoomStatus(session, msg.appcode,msg.status,msg.roomid, this.app.get('serverId'), false,null);
+
+    next(null, {
+        code:200,
+        route:'syncGameRoom'
+    });
+    return;
+}
