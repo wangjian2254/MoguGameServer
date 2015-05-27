@@ -305,8 +305,8 @@ handler.quickGame = function(msg,session,next){
                     if(channel.getMembers().length<6){
                         var users = channel.getMembers();
                         var f=false;
-                        for(var i=0;i<users.length;i++){
-                            if(this.app.gameuserstatus[users[i]]=='playing'){
+                        for(var j=0;i<users.length;j++){
+                            if(this.app.gameuserstatus[users[j]]=='playing'){
                                 f=true;
                                 break;
                             }
