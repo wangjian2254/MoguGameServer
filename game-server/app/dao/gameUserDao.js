@@ -99,6 +99,12 @@ gameUserDao.updateGameUser = function(appcode,gameuser, cb) {
 };
 
 
+/**
+ * 剔除usename为空字符串的情况
+ * @param appcode
+ * @param usernames
+ * @param cb
+ */
 gameUserDao.queryGameUsersByUsernames = function(appcode,usernames, cb) {
     if(!pomelo.app.get('alluser')[appcode]){
         pomelo.app.get('alluser')[appcode]={};
@@ -106,6 +112,9 @@ gameUserDao.queryGameUsersByUsernames = function(appcode,usernames, cb) {
     var us='';
     var users=[];
     for(var i=0;i<usernames.length;i++){
+        if(usernames[i].length==0){
+            continue;
+        }
         if(pomelo.app.get('alluser')[appcode][usernames[i]]){
             users.push(pomelo.app.get('alluser')[appcode][usernames[i]]);
         }else{

@@ -2,8 +2,23 @@
  * Created by WangJian on 2014/7/16.
  */
 
+/**
+ * 判断username为空自动退出
+ * @param msg
+ * @param session
+ * @param next
+ * @param app
+ * @returns {boolean}
+ */
 module.exports.hasOnline=function(msg,session,next,app){
     var sessionService = app.get('sessionService');
+    if(msg.username.length==0){
+        next(null, {
+            route:'disconnect',
+            code: 404
+        });
+        return true;
+    }
     if(!sessionService.getByUid(msg.username)) {
         next(null, {
             route:'disconnect',

@@ -33,6 +33,8 @@ handler.checkOnLine = function(msg,session,next){
 
 /**
  * New client entry chat server.
+ * 剔除username为空的情况
+ * by:王健 at:2015-05-29
  *
  * @param  {Object}   msg     request message
  * @param  {Object}   session current session object
@@ -44,6 +46,16 @@ handler.addRoom = function(msg, session, next) {
     var roomid = msg.roomid;
     var appcode = msg.appcode;
     var username = msg.username;
+
+    if(username.length==0){
+        next(null, {
+            code:500,
+            message:"用户名不合法。",
+            error:true,
+            route:'addRoom'
+        });
+        return;
+    }
 
     var sessionService = self.app.get('sessionService');
     if(!session.uid&&sessionService.getByUid(username)){
@@ -150,12 +162,27 @@ handler.addRoom = function(msg, session, next) {
 };
 
 
-
+/**
+ * 剔除username为空的情况
+ * by:王健 at:2015-05-29
+ * @param msg
+ * @param session
+ * @param next
+ */
 handler.addRoomList = function(msg, session, next) {
     this.app.game[msg.appcode]=true;
     var self = this;
     var appcode = msg.appcode;//appcode
     var username = msg.username;
+    if(username.length==0){
+        next(null, {
+            code:500,
+            message:"用户名不合法。",
+            error:true,
+            route:'addRoomList'
+        });
+        return;
+    }
     var sessionService = self.app.get('sessionService');
     if(!session.uid&&sessionService.getByUid(username)){
         sessionService.kick(username);
