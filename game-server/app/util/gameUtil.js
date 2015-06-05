@@ -54,7 +54,7 @@ module.exports.quiteRoom=function(msg,session,oldroomid,app,channelService){
     }
     // leave channel
     if( !! channel) {
-        channel.leave(u, app.get('serverId'));
+
         var param = {
             code:200,
             route: 'onLeave',
@@ -62,6 +62,7 @@ module.exports.quiteRoom=function(msg,session,oldroomid,app,channelService){
             user: u
         };
         channel.pushMessage(param);
+        channel.leave(u, app.get('serverId'));
     }
 
     if(!!channel2){
