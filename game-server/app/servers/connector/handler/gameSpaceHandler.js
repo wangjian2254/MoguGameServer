@@ -23,8 +23,8 @@ handler.quiteRoom = function(msg,session,next){
 
     gameutil.quiteRoom(msg,session,msg.roomid,this.app,this.channelService);
 
-    session.set('roomid',null);
-    session.push('roomid');
+//    session.set('roomid',null);
+//    session.push('roomid');
 
 
 //    this.app.rpc.chat.chatRemote.kick(session, msg.roomid,session.uid,msg.appcode, this.app.get('serverId'), null);

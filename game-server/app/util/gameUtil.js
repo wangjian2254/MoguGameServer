@@ -36,17 +36,30 @@ module.exports.hasOnline=function(msg,session,next,app){
     return false;
 }
 
+/**
+ * 将 to_username 成员 移出房间
+ * by:王健 at:2015-06-05
+ * @param msg
+ * @param session
+ * @param oldroomid
+ * @param app
+ * @param channelService
+ */
 module.exports.quiteRoom=function(msg,session,oldroomid,app,channelService){
     var channel2 = channelService.getChannel(msg.appcode, false);
     var channel = channelService.getChannel(oldroomid, false);
+    var u = msg.username;
+    if(msg.to_username){
+        u = msg.to_username;
+    }
     // leave channel
     if( !! channel) {
-        channel.leave(msg.username, app.get('serverId'));
+        channel.leave(u, app.get('serverId'));
         var param = {
             code:200,
             route: 'onLeave',
             roomid:oldroomid,
-            user: session.uid
+            user: u
         };
         channel.pushMessage(param);
     }
@@ -56,13 +69,13 @@ module.exports.quiteRoom=function(msg,session,oldroomid,app,channelService){
             code:200,
             route: 'memberChanged',
             changed:'out',
-            user: session.uid,
+            user: u,
             roomid:oldroomid
         };
         channel2.pushMessage(param2);
     }
-    if(app.get('gameroom')[oldroomid]&& typeof  app.get('gameroom')[oldroomid][session.uid] == "undefined"){
-        delete app.get('gameroom')[oldroomid][session.uid];
+    if(app.get('gameroom')[oldroomid]&& typeof  app.get('gameroom')[oldroomid][u] == "undefined"){
+        delete app.get('gameroom')[oldroomid][u];
     }
     if(channel.getMembers().length<6&&channel2){
         var s='stop';
