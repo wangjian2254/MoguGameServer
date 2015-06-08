@@ -59,6 +59,7 @@ module.exports.quiteRoom=function(msg,session,oldroomid,app,channelService){
             code:200,
             route: 'onLeave',
             roomid:oldroomid,
+            do_user:session.uid,
             user: u
         };
         channel.pushMessage(param);
